@@ -4,9 +4,13 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"github.com/itohin/gophkeeper/internal/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/infrastructure/logger"
-	"github.com/itohin/gophkeeper/internal/infrastructure/prompt"
+	"github.com/itohin/gophkeeper/internal/infrastructure/mailer"
 	"github.com/itohin/gophkeeper/internal/infrastructure/validator"
+	"math/rand"
+	"strconv"
+	"time"
 )
 
 const (
@@ -19,19 +23,20 @@ const (
 type Cli struct {
 	log    logger.Logger
 	prompt *prompt.Prompt
+	mailer mailer.Mailer
 }
 
-func NewCli(logger logger.Logger, prompt *prompt.Prompt) *Cli {
+func NewCli(logger logger.Logger, prompt *prompt.Prompt, mailer mailer.Mailer) *Cli {
 	return &Cli{
 		log:    logger,
 		prompt: prompt,
+		mailer: mailer,
 	}
 }
 
 func (c *Cli) Auth() error {
 	menuPrompt := prompt.PromptContent{}
 	menuPrompt.Label = "Выполните вход или зарегистрируйтесь: "
-	menuPrompt.ErrorMsg = "auth error"
 
 	action, err := c.prompt.PromptGetSelect(menuPrompt, []string{login, register})
 	if err != nil {
@@ -50,10 +55,9 @@ func (c *Cli) Auth() error {
 func (c *Cli) Login() error {
 	loginPrompt := prompt.PromptContent{}
 	loginPrompt.Label = "Введите логин: "
-	loginPrompt.ErrorMsg = "login error"
 	validate := func(input string) error {
 		if len(input) <= 0 {
-			return errors.New(loginPrompt.ErrorMsg)
+			return errors.New("error")
 		}
 		return nil
 	}
@@ -62,9 +66,8 @@ func (c *Cli) Login() error {
 		return err
 	}
 	passwordPrompt := prompt.PromptContent{
-		Label:    "Введите пароль: ",
-		ErrorMsg: "password error",
-		Mask:     42,
+		Label: "Введите пароль: ",
+		Mask:  42,
 	}
 	password, err := c.prompt.PromptGetInput(passwordPrompt, validate)
 	if err != nil {
@@ -76,7 +79,6 @@ func (c *Cli) Login() error {
 
 	menuPrompt := prompt.PromptContent{}
 	menuPrompt.Label = "Выберите действие: "
-	menuPrompt.ErrorMsg = "action error"
 
 	action, err := c.prompt.PromptGetSelect(menuPrompt, []string{addData, getData})
 	if err != nil {
@@ -90,11 +92,29 @@ func (c *Cli) Login() error {
 func (c *Cli) Register() error {
 	loginPrompt := prompt.PromptContent{}
 	loginPrompt.Label = "Введите логин(действующий email): "
-	loginPrompt.ErrorMsg = "login error"
 	login, err := c.prompt.PromptGetInput(loginPrompt, validator.ValidateEmail())
 	if err != nil {
 		return err
 	}
-	c.log.Info(login)
+	confirmationCode := getConfirmationCode()
+	confirmationMessage := "Для подтверждения адреса электронной почты в сервисе gophkeeper, введите пожалуйста код подтверждения: " + confirmationCode
+	err = c.mailer.SendMail([]string{login}, confirmationMessage)
+	if err != nil {
+		return err
+	}
+	codePrompt := prompt.PromptContent{}
+	codePrompt.Label = "На указанный вами email отправлен код подтверждения. Введите код для продолжения регистрации: "
+	code, err := c.prompt.PromptGetInput(codePrompt, validator.ValidateConfirmationCode(confirmationCode))
+	if err != nil {
+		return err
+	}
+	c.log.Info(code)
 	return nil
+}
+
+func getConfirmationCode() string {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	min := 1001
+	max := 9999
+	return strconv.Itoa(rand.Intn(max-min+1) + min)
 }

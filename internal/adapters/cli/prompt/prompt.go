@@ -15,9 +15,8 @@ func NewPrompt(logger logger.Logger) *Prompt {
 }
 
 type PromptContent struct {
-	ErrorMsg string
-	Label    string
-	Mask     rune
+	Label string
+	Mask  rune
 }
 
 func (p *Prompt) PromptGetInput(pc PromptContent, validate func(input string) error) (string, error) {
