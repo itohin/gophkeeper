@@ -5,12 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/itohin/gophkeeper/internal/adapters/cli/prompt"
+	"github.com/itohin/gophkeeper/internal/infrastructure/code_generator"
 	"github.com/itohin/gophkeeper/internal/infrastructure/logger"
 	"github.com/itohin/gophkeeper/internal/infrastructure/mailer"
 	"github.com/itohin/gophkeeper/internal/infrastructure/validator"
-	"math/rand"
-	"strconv"
-	"time"
 )
 
 const (
@@ -21,16 +19,18 @@ const (
 )
 
 type Cli struct {
-	log    logger.Logger
-	prompt *prompt.Prompt
-	mailer mailer.Mailer
+	log           logger.Logger
+	prompt        prompt.Prompter
+	mailer        mailer.Mailer
+	codeGenerator code_generator.Generator
 }
 
-func NewCli(logger logger.Logger, prompt *prompt.Prompt, mailer mailer.Mailer) *Cli {
+func NewCli(logger logger.Logger, prompt prompt.Prompter, mailer mailer.Mailer, codeGen code_generator.Generator) *Cli {
 	return &Cli{
-		log:    logger,
-		prompt: prompt,
-		mailer: mailer,
+		log:           logger,
+		prompt:        prompt,
+		mailer:        mailer,
+		codeGenerator: codeGen,
 	}
 }
 
@@ -44,15 +44,15 @@ func (c *Cli) Auth() error {
 	}
 	switch action {
 	case login:
-		return c.Login()
+		return c.login()
 	case register:
-		return c.Register()
+		return c.register()
 	default:
 		return fmt.Errorf("unknown action %s", action)
 	}
 }
 
-func (c *Cli) Login() error {
+func (c *Cli) login() error {
 	loginPrompt := prompt.PromptContent{}
 	loginPrompt.Label = "Введите логин: "
 	validate := func(input string) error {
@@ -89,14 +89,14 @@ func (c *Cli) Login() error {
 	return nil
 }
 
-func (c *Cli) Register() error {
+func (c *Cli) register() error {
 	loginPrompt := prompt.PromptContent{}
 	loginPrompt.Label = "Введите логин(действующий email): "
 	login, err := c.prompt.PromptGetInput(loginPrompt, validator.ValidateEmail())
 	if err != nil {
 		return err
 	}
-	confirmationCode := getConfirmationCode()
+	confirmationCode := c.codeGenerator.GetCode()
 	confirmationMessage := "Для подтверждения адреса электронной почты в сервисе gophkeeper, введите пожалуйста код подтверждения: " + confirmationCode
 	err = c.mailer.SendMail([]string{login}, confirmationMessage)
 	if err != nil {
@@ -104,17 +104,18 @@ func (c *Cli) Register() error {
 	}
 	codePrompt := prompt.PromptContent{}
 	codePrompt.Label = "На указанный вами email отправлен код подтверждения. Введите код для продолжения регистрации: "
-	code, err := c.prompt.PromptGetInput(codePrompt, validator.ValidateConfirmationCode(confirmationCode))
+	_, err = c.prompt.PromptGetInput(codePrompt, validator.ValidateConfirmationCode(confirmationCode))
 	if err != nil {
 		return err
 	}
-	c.log.Info(code)
+	passwordPrompt := prompt.PromptContent{
+		Label: "Введите пароль(не менее 8 символов в разном регистре: буквы, цифры, спецсимволы.): ",
+		Mask:  42,
+	}
+	password, err := c.prompt.PromptGetInput(passwordPrompt, validator.ValidatePassword())
+	if err != nil {
+		return err
+	}
+	c.log.Info(password)
 	return nil
-}
-
-func getConfirmationCode() string {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-	min := 1001
-	max := 9999
-	return strconv.Itoa(rand.Intn(max-min+1) + min)
 }
