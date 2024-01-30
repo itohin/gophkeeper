@@ -1,38 +1,16 @@
 package cli
 
-import "C"
 import (
-	"errors"
+	"context"
 	"fmt"
-	"github.com/itohin/gophkeeper/internal/adapters/cli/prompt"
-	"github.com/itohin/gophkeeper/internal/infrastructure/code_generator"
-	"github.com/itohin/gophkeeper/internal/infrastructure/logger"
-	"github.com/itohin/gophkeeper/internal/infrastructure/mailer"
-	"github.com/itohin/gophkeeper/internal/infrastructure/validator"
+	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
+	"github.com/itohin/gophkeeper/pkg/validator"
 )
 
 const (
 	register = "Регистрация"
 	login    = "Вход"
-	addData  = "Сохранить данные"
-	getData  = "Получить данные"
 )
-
-type Cli struct {
-	log           logger.Logger
-	prompt        prompt.Prompter
-	mailer        mailer.Mailer
-	codeGenerator code_generator.Generator
-}
-
-func NewCli(logger logger.Logger, prompt prompt.Prompter, mailer mailer.Mailer, codeGen code_generator.Generator) *Cli {
-	return &Cli{
-		log:           logger,
-		prompt:        prompt,
-		mailer:        mailer,
-		codeGenerator: codeGen,
-	}
-}
 
 func (c *Cli) Auth() error {
 	menuPrompt := prompt.PromptContent{}
@@ -53,15 +31,10 @@ func (c *Cli) Auth() error {
 }
 
 func (c *Cli) login() error {
-	loginPrompt := prompt.PromptContent{}
-	loginPrompt.Label = "Введите логин: "
-	validate := func(input string) error {
-		if len(input) <= 0 {
-			return errors.New("error")
-		}
-		return nil
-	}
-	login, err := c.prompt.PromptGetInput(loginPrompt, validate)
+	login, err := c.prompt.PromptGetInput(
+		prompt.PromptContent{Label: "Введите логин: "},
+		validator.ValidateEmail(),
+	)
 	if err != nil {
 		return err
 	}
@@ -69,24 +42,16 @@ func (c *Cli) login() error {
 		Label: "Введите пароль: ",
 		Mask:  42,
 	}
-	password, err := c.prompt.PromptGetInput(passwordPrompt, validate)
+	password, err := c.prompt.PromptGetInput(passwordPrompt, validator.ValidatePassword())
 	if err != nil {
 		return err
 	}
 
-	c.log.Info(login, password)
-	//check credentials
-
-	menuPrompt := prompt.PromptContent{}
-	menuPrompt.Label = "Выберите действие: "
-
-	action, err := c.prompt.PromptGetSelect(menuPrompt, []string{addData, getData})
+	err = c.auth.Login(context.Background(), login, password)
 	if err != nil {
 		return err
 	}
-	c.log.Info(action)
-
-	return nil
+	return c.dataMenu()
 }
 
 func (c *Cli) register() error {
@@ -116,6 +81,11 @@ func (c *Cli) register() error {
 	if err != nil {
 		return err
 	}
-	c.log.Info(password)
-	return nil
+
+	err = c.auth.Register(context.Background(), login, password)
+	if err != nil {
+		return err
+	}
+
+	return c.dataMenu()
 }

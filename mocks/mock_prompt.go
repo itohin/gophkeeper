@@ -5,10 +5,10 @@
 package mocks
 
 import (
+	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	prompt "github.com/itohin/gophkeeper/internal/adapters/cli/prompt"
 )
 
 // MockPrompter is a mock of Prompter interface.
