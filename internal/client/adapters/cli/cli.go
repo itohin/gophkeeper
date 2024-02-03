@@ -49,7 +49,7 @@ func NewCli(
 
 	cli.router = router.NewRouter(
 		map[string]router.Command{
-			authMenu: cli.Auth,
+			authMenu: cli.authMenu,
 			register: cli.register,
 			login:    cli.login,
 			dataMenu: cli.dataMenu,
@@ -62,7 +62,7 @@ func NewCli(
 }
 
 func (c *Cli) Run() error {
-	action, err := c.Auth()
+	action, err := c.authMenu()
 	if err != nil {
 		return err
 	}

@@ -33,37 +33,39 @@ func TestCli_Auth(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		action  string
-		err     error
-		wantErr assert.ErrorAssertionFunc
+		name       string
+		err        error
+		wantAction string
+		wantErr    assert.ErrorAssertionFunc
 	}{
 		{
-			name:    "unknown action",
-			action:  "unknown",
-			err:     errors.New("unknown action"),
-			wantErr: assert.Error,
+			name:       "unknown action",
+			err:        errors.New("unknown action"),
+			wantAction: "unknown",
+			wantErr:    assert.Error,
 		},
 		{
-			name:    "login",
-			action:  "login",
-			err:     nil,
-			wantErr: assert.NoError,
+			name:       "login",
+			err:        nil,
+			wantAction: "login",
+			wantErr:    assert.NoError,
 		},
 		{
-			name:    "register",
-			action:  "register",
-			err:     nil,
-			wantErr: assert.NoError,
+			name:       "register",
+			err:        nil,
+			wantAction: "register",
+			wantErr:    assert.NoError,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			prompter.EXPECT().PromptGetSelect(menuPrompt, selectItems).Return(tt.action, tt.err).Times(1)
+			prompter.EXPECT().PromptGetSelect(menuPrompt, selectItems).Return(tt.wantAction, tt.err).Times(1)
 
-			_, err := c.Auth()
+			action, err := c.authMenu()
 
-			tt.wantErr(t, err, fmt.Sprintf("Auth()"))
+			assert.Equal(t, action, tt.wantAction)
+
+			tt.wantErr(t, err, fmt.Sprintf("authMenu()"))
 		})
 	}
 }
@@ -100,10 +102,11 @@ func TestCli_Register(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		mockTimes map[string]int
-		errors    map[string]error
-		wantErr   assert.ErrorAssertionFunc
+		name       string
+		mockTimes  map[string]int
+		errors     map[string]error
+		wantAction string
+		wantErr    assert.ErrorAssertionFunc
 	}{
 		{
 			name: "login error",
@@ -122,7 +125,8 @@ func TestCli_Register(t *testing.T) {
 				"passwordPrompt": nil,
 				"auth":           nil,
 			},
-			wantErr: assert.Error,
+			wantAction: "",
+			wantErr:    assert.Error,
 		},
 		{
 			name: "mail error",
@@ -141,7 +145,8 @@ func TestCli_Register(t *testing.T) {
 				"passwordPrompt": nil,
 				"auth":           nil,
 			},
-			wantErr: assert.Error,
+			wantAction: "",
+			wantErr:    assert.Error,
 		},
 		{
 			name: "code error",
@@ -160,7 +165,8 @@ func TestCli_Register(t *testing.T) {
 				"passwordPrompt": nil,
 				"auth":           nil,
 			},
-			wantErr: assert.Error,
+			wantAction: "",
+			wantErr:    assert.Error,
 		},
 		{
 			name: "password error",
@@ -179,7 +185,8 @@ func TestCli_Register(t *testing.T) {
 				"passwordPrompt": errors.New("password error"),
 				"auth":           nil,
 			},
-			wantErr: assert.Error,
+			wantAction: "",
+			wantErr:    assert.Error,
 		},
 		{
 			name: "auth register error",
@@ -198,7 +205,8 @@ func TestCli_Register(t *testing.T) {
 				"passwordPrompt": nil,
 				"auth":           errors.New("register error"),
 			},
-			wantErr: assert.Error,
+			wantAction: "",
+			wantErr:    assert.Error,
 		},
 		{
 			name: "success",
@@ -217,7 +225,8 @@ func TestCli_Register(t *testing.T) {
 				"passwordPrompt": nil,
 				"auth":           nil,
 			},
-			wantErr: assert.NoError,
+			wantAction: "dataMenu",
+			wantErr:    assert.NoError,
 		},
 	}
 	for _, tt := range tests {
@@ -232,6 +241,112 @@ func TestCli_Register(t *testing.T) {
 
 			_, err := c.register()
 			tt.wantErr(t, err, fmt.Sprintf("Register()"))
+		})
+	}
+}
+
+func TestCli_Login(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	prompter := mocks.NewMockPrompter(ctrl)
+	log := mocks.NewMockLogger(ctrl)
+	auth := mocks.NewMockAuth(ctrl)
+
+	log.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	c := &Cli{
+		log:    log,
+		prompt: prompter,
+		auth:   auth,
+	}
+
+	loginPrompt := prompt.PromptContent{}
+	loginPrompt.Label = "Введите логин: "
+
+	passwordPrompt := prompt.PromptContent{
+		Label: "Введите пароль: ",
+		Mask:  42,
+	}
+
+	tests := []struct {
+		name       string
+		mockTimes  map[string]int
+		errors     map[string]error
+		wantAction string
+		wantErr    assert.ErrorAssertionFunc
+	}{
+		{
+			name: "login error",
+			mockTimes: map[string]int{
+				"loginPrompt":    1,
+				"passwordPrompt": 0,
+				"auth":           0,
+			},
+			errors: map[string]error{
+				"loginPrompt":    errors.New("login error"),
+				"passwordPrompt": nil,
+				"auth":           nil,
+			},
+			wantAction: "",
+			wantErr:    assert.Error,
+		},
+		{
+			name: "password error",
+			mockTimes: map[string]int{
+				"loginPrompt":    1,
+				"passwordPrompt": 1,
+				"auth":           0,
+			},
+			errors: map[string]error{
+				"loginPrompt":    nil,
+				"passwordPrompt": errors.New("password error"),
+				"auth":           nil,
+			},
+			wantAction: "",
+			wantErr:    assert.Error,
+		},
+		{
+			name: "auth login error",
+			mockTimes: map[string]int{
+				"loginPrompt":    1,
+				"passwordPrompt": 1,
+				"auth":           1,
+			},
+			errors: map[string]error{
+				"loginPrompt":    nil,
+				"passwordPrompt": nil,
+				"auth":           errors.New("login error"),
+			},
+			wantAction: "",
+			wantErr:    assert.Error,
+		},
+		{
+			name: "success",
+			mockTimes: map[string]int{
+				"loginPrompt":    1,
+				"passwordPrompt": 1,
+				"auth":           1,
+			},
+			errors: map[string]error{
+				"loginPrompt":    nil,
+				"passwordPrompt": nil,
+				"auth":           nil,
+			},
+			wantAction: "dataMenu",
+			wantErr:    assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			prompter.EXPECT().PromptGetInput(loginPrompt, gomock.Any()).Return("a@a.com", tt.errors["loginPrompt"]).Times(tt.mockTimes["loginPrompt"])
+			prompter.EXPECT().PromptGetInput(passwordPrompt, gomock.Any()).Return("tesT@pass1word", tt.errors["passwordPrompt"]).Times(tt.mockTimes["passwordPrompt"])
+			auth.EXPECT().Login(gomock.Any(), "a@a.com", "tesT@pass1word").Return(tt.errors["auth"]).Times(tt.mockTimes["auth"])
+
+			action, err := c.login()
+			assert.Equal(t, action, tt.wantAction)
+			tt.wantErr(t, err, fmt.Sprintf("Login()"))
 		})
 	}
 }

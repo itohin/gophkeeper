@@ -6,7 +6,7 @@ import (
 	"github.com/itohin/gophkeeper/pkg/validator"
 )
 
-func (c *Cli) Auth() (string, error) {
+func (c *Cli) authMenu() (string, error) {
 	menuPrompt := prompt.PromptContent{}
 	menuPrompt.Label = "Выполните вход или зарегистрируйтесь: "
 
