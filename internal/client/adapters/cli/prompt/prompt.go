@@ -7,7 +7,7 @@ import (
 
 type Prompter interface {
 	PromptGetInput(pc PromptContent, validate func(input string) error) (string, error)
-	PromptGetSelect(pc PromptContent, items []string) (string, error)
+	PromptGetSelect(pc PromptContent, items []SelectItem) (string, error)
 }
 
 type Prompt struct{}
@@ -19,6 +19,11 @@ func NewPrompt() *Prompt {
 type PromptContent struct {
 	Label string
 	Mask  rune
+}
+
+type SelectItem struct {
+	Label  string
+	Action string
 }
 
 func (p *Prompt) PromptGetInput(pc PromptContent, validate func(input string) error) (string, error) {
@@ -43,17 +48,24 @@ func (p *Prompt) PromptGetInput(pc PromptContent, validate func(input string) er
 	return result, nil
 }
 
-func (p *Prompt) PromptGetSelect(pc PromptContent, items []string) (string, error) {
+func (p *Prompt) PromptGetSelect(pc PromptContent, items []SelectItem) (string, error) {
+	templates := &promptui.SelectTemplates{
+		Label:    "{{ . }}",
+		Active:   "\u21E8 {{ .Label | cyan }}",
+		Inactive: "  {{ .Label | cyan }}",
+		Selected: "\u21E8 {{ .Label | red | cyan }}",
+	}
 	prompt := promptui.Select{
-		Label: pc.Label,
-		Items: items,
+		Label:     pc.Label,
+		Items:     items,
+		Templates: templates,
 	}
 
-	_, result, err := prompt.Run()
+	i, s, err := prompt.Run()
 
 	if err != nil {
-		return result, fmt.Errorf("Prompt failed %v\n", err)
+		return s, fmt.Errorf("Prompt failed %v\n", err)
 	}
 
-	return result, nil
+	return items[i].Action, nil
 }

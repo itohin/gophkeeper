@@ -18,7 +18,7 @@ func main() {
 
 	app := cli.NewCli(l, p, m, c, auth)
 
-	err := app.Auth()
+	err := app.Run()
 	if err != nil {
 		l.Fatal(err)
 	}

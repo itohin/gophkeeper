@@ -260,7 +260,7 @@ func TestCli_Register(t *testing.T) {
 				"passwordPrompt": nil,
 				"auth":           nil,
 			},
-			wantErr: assert.NoError,
+			wantErr: assert.Error,
 		},
 	}
 	for _, tt := range tests {
@@ -272,7 +272,7 @@ func TestCli_Register(t *testing.T) {
 			prompter.EXPECT().PromptGetInput(codePrompt, gomock.Any()).Return("1111", tt.errors["codePrompt"]).Times(tt.mockTimes["codePrompt"])
 			prompter.EXPECT().PromptGetInput(passwordPrompt, gomock.Any()).Return("tesT@pass1word", tt.errors["passwordPrompt"]).Times(tt.mockTimes["passwordPrompt"])
 			auth.EXPECT().Register(gomock.Any(), "a@a.com", "tesT@pass1word").Return(tt.errors["auth"]).Times(tt.mockTimes["auth"])
-			prompter.EXPECT().PromptGetSelect(dataPrompt, []string{addData, getData}).Return(addData, nil).AnyTimes()
+			prompter.EXPECT().PromptGetSelect(dataPrompt, []string{addData, getData}).Return("", errors.New("unknown action")).AnyTimes()
 
 			tt.wantErr(t, c.register(), fmt.Sprintf("Register()"))
 		})
