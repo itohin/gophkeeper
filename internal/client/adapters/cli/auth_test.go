@@ -10,68 +10,7 @@ import (
 	"testing"
 )
 
-func TestCli_Auth_Login(t *testing.T) {
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	prompter := mocks.NewMockPrompter(ctrl)
-	log := mocks.NewMockLogger(ctrl)
-	log.EXPECT().Info(gomock.Any()).AnyTimes()
-	auth := mocks.NewMockAuth(ctrl)
-
-	c := &Cli{
-		log:    log,
-		prompt: prompter,
-		auth:   auth,
-	}
-
-	menuPrompt := prompt.PromptContent{}
-	menuPrompt.Label = "Выполните вход или зарегистрируйтесь: "
-
-	prompter.EXPECT().PromptGetSelect(menuPrompt, []string{login, register}).Return(login, nil).Times(1)
-	prompter.EXPECT().PromptGetInput(gomock.Any(), gomock.Any()).Times(2)
-	auth.EXPECT().Login(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	prompter.EXPECT().PromptGetSelect(gomock.Any(), gomock.Any()).AnyTimes()
-
-	c.Auth()
-}
-
-func TestCli_Auth_Register(t *testing.T) {
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	prompter := mocks.NewMockPrompter(ctrl)
-	mailer := mocks.NewMockMailer(ctrl)
-	log := mocks.NewMockLogger(ctrl)
-	codegen := mocks.NewMockGenerator(ctrl)
-	auth := mocks.NewMockAuth(ctrl)
-
-	log.EXPECT().Info(gomock.Any()).AnyTimes()
-	codegen.EXPECT().GetCode().AnyTimes()
-
-	c := &Cli{
-		log:           log,
-		prompt:        prompter,
-		mailer:        mailer,
-		codeGenerator: codegen,
-		auth:          auth,
-	}
-
-	menuPrompt := prompt.PromptContent{}
-	menuPrompt.Label = "Выполните вход или зарегистрируйтесь: "
-
-	prompter.EXPECT().PromptGetSelect(menuPrompt, []string{login, register}).Return(register, nil).Times(1)
-	prompter.EXPECT().PromptGetInput(gomock.Any(), gomock.Any()).Times(3)
-	mailer.EXPECT().SendMail(gomock.Any(), gomock.Any()).Times(1)
-	auth.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	prompter.EXPECT().PromptGetSelect(gomock.Any(), gomock.Any()).AnyTimes()
-
-	c.Auth()
-}
-
-func TestCli_Auth_Error(t *testing.T) {
+func TestCli_Auth(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -82,29 +21,49 @@ func TestCli_Auth_Error(t *testing.T) {
 
 	menuPrompt := prompt.PromptContent{}
 	menuPrompt.Label = "Выполните вход или зарегистрируйтесь: "
-
-	tests := []struct {
-		name   string
-		action string
-		err    error
-	}{
+	selectItems := []prompt.SelectItem{
 		{
-			name:   "unknown action",
-			action: "unknown",
-			err:    nil,
+			Label:  loginLabel,
+			Action: login,
 		},
 		{
-			name:   "error",
-			action: "login",
-			err:    errors.New("any error"),
+			Label:  registerLabel,
+			Action: register,
+		},
+	}
+
+	tests := []struct {
+		name    string
+		action  string
+		err     error
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name:    "unknown action",
+			action:  "unknown",
+			err:     errors.New("unknown action"),
+			wantErr: assert.Error,
+		},
+		{
+			name:    "login",
+			action:  "login",
+			err:     nil,
+			wantErr: assert.NoError,
+		},
+		{
+			name:    "register",
+			action:  "register",
+			err:     nil,
+			wantErr: assert.NoError,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			prompter.EXPECT().PromptGetSelect(gomock.Any(), gomock.Any()).Return(tt.action, tt.err).Times(1)
+			prompter.EXPECT().PromptGetSelect(menuPrompt, selectItems).Return(tt.action, tt.err).Times(1)
 
-			err := c.Auth()
-			assert.Error(t, err)
+			_, err := c.Auth()
+
+			tt.wantErr(t, err, fmt.Sprintf("Auth()"))
 		})
 	}
 }
@@ -139,8 +98,6 @@ func TestCli_Register(t *testing.T) {
 		Label: "Введите пароль(не менее 8 символов в разном регистре: буквы, цифры, спецсимволы.): ",
 		Mask:  42,
 	}
-
-	dataPrompt := prompt.PromptContent{Label: "Выберите действие: "}
 
 	tests := []struct {
 		name      string
@@ -260,7 +217,7 @@ func TestCli_Register(t *testing.T) {
 				"passwordPrompt": nil,
 				"auth":           nil,
 			},
-			wantErr: assert.Error,
+			wantErr: assert.NoError,
 		},
 	}
 	for _, tt := range tests {
@@ -272,9 +229,9 @@ func TestCli_Register(t *testing.T) {
 			prompter.EXPECT().PromptGetInput(codePrompt, gomock.Any()).Return("1111", tt.errors["codePrompt"]).Times(tt.mockTimes["codePrompt"])
 			prompter.EXPECT().PromptGetInput(passwordPrompt, gomock.Any()).Return("tesT@pass1word", tt.errors["passwordPrompt"]).Times(tt.mockTimes["passwordPrompt"])
 			auth.EXPECT().Register(gomock.Any(), "a@a.com", "tesT@pass1word").Return(tt.errors["auth"]).Times(tt.mockTimes["auth"])
-			prompter.EXPECT().PromptGetSelect(dataPrompt, []string{addData, getData}).Return("", errors.New("unknown action")).AnyTimes()
 
-			tt.wantErr(t, c.register(), fmt.Sprintf("Register()"))
+			_, err := c.register()
+			tt.wantErr(t, err, fmt.Sprintf("Register()"))
 		})
 	}
 }
