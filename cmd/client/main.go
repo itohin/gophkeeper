@@ -12,7 +12,7 @@ import (
 func main() {
 	l := logger.NewLogger()
 	p := prompt.NewPrompt()
-	m := mailer.NewSMTPMailer("from@gmail.com", "", "localhost", "1025")
+	m := mailer.NewSMTPMailer("from@gmail.com", "", "localhost", "1025", l)
 	c := code_generator.NewCodeGenerator()
 	auth := auth2.NewAuth()
 

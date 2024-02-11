@@ -1,6 +1,9 @@
 package logger
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/sirupsen/logrus"
+	"os"
+)
 
 type Logger interface {
 	Debug(args ...interface{})
@@ -20,6 +23,7 @@ type Logger interface {
 func NewLogger() Logger {
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.JSONFormatter{})
+	logger.SetOutput(os.Stdout)
 
 	return logger
 }

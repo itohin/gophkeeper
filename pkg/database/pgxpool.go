@@ -3,17 +3,19 @@ package database
 import (
 	"context"
 	"errors"
-
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
+	"os"
+	"path/filepath"
 )
 
-// PgxPoolDB is a pool of connections to postgres db
 type PgxPoolDB struct {
 	Pool *pgxpool.Pool
 }
 
-// NewPgxPoolDB is a PgxPoolDB constructor that creates metrics table if not exists
-func NewPgxPoolDB(ctx context.Context, dsn string) (*PgxPoolDB, error) {
+func NewPgxPoolDB(ctx context.Context, dsn, migrationsPath string) (*PgxPoolDB, error) {
+	db := &PgxPoolDB{}
 	if dsn == "" {
 		return nil, errors.New("no database dsn specified")
 	}
@@ -26,13 +28,28 @@ func NewPgxPoolDB(ctx context.Context, dsn string) (*PgxPoolDB, error) {
 		return nil, err
 	}
 
-	//TODO migration
-
-	if err != nil {
+	if err = migrate(pool, migrationsPath); err != nil {
 		return nil, err
 	}
 
-	return &PgxPoolDB{
-		Pool: pool,
-	}, nil
+	db.Pool = pool
+
+	return db, nil
+}
+
+func migrate(pool *pgxpool.Pool, migrationsPath string) error {
+	migrationsPath, err := filepath.Abs(migrationsPath)
+	if err != nil {
+		return err
+	}
+	goose.SetBaseFS(os.DirFS(migrationsPath))
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return err
+	}
+	sqlDB := stdlib.OpenDBFromPool(pool)
+	if err := goose.Up(sqlDB, "."); err != nil {
+		return err
+	}
+	return nil
 }

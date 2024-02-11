@@ -6,7 +6,6 @@ import (
 	"github.com/itohin/gophkeeper/internal/client/usecases/auth"
 	"github.com/itohin/gophkeeper/pkg/code_generator"
 	"github.com/itohin/gophkeeper/pkg/logger"
-	"github.com/itohin/gophkeeper/pkg/mailer"
 )
 
 const (
@@ -23,11 +22,15 @@ const (
 	getDataLabel  = "Получить данные"
 )
 
+type Mailer interface {
+	SendMail(to []string, message string) error
+}
+
 type Cli struct {
 	router        *router.Router
 	log           logger.Logger
 	prompt        prompt.Prompter
-	mailer        mailer.Mailer
+	mailer        Mailer
 	codeGenerator code_generator.Generator
 	auth          auth.Auth
 }
@@ -35,7 +38,7 @@ type Cli struct {
 func NewCli(
 	logger logger.Logger,
 	prompt prompt.Prompter,
-	mailer mailer.Mailer,
+	mailer Mailer,
 	codeGen code_generator.Generator,
 	auth auth.Auth,
 ) *Cli {
@@ -66,6 +69,7 @@ func (c *Cli) Run() error {
 	if err != nil {
 		return err
 	}
+	c.log.Infof("requested action: %s", action)
 
 	for {
 		cmd, err := c.router.GetCommand(action)
@@ -76,5 +80,7 @@ func (c *Cli) Run() error {
 		if err != nil {
 			return err
 		}
+
+		c.log.Infof("requested action: %s", action)
 	}
 }
