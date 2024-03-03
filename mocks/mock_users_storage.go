@@ -36,10 +36,10 @@ func (m *MockUsersStorage) EXPECT() *MockUsersStorageMockRecorder {
 }
 
 // FindByEmail mocks base method.
-func (m *MockUsersStorage) FindByEmail(arg0 context.Context, arg1 string) (entities.User, error) {
+func (m *MockUsersStorage) FindByEmail(arg0 context.Context, arg1 string) (*entities.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindByEmail", arg0, arg1)
-	ret0, _ := ret[0].(entities.User)
+	ret0, _ := ret[0].(*entities.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -50,13 +50,27 @@ func (mr *MockUsersStorageMockRecorder) FindByEmail(arg0, arg1 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByEmail", reflect.TypeOf((*MockUsersStorage)(nil).FindByEmail), arg0, arg1)
 }
 
-// Save mocks base method.
-func (m *MockUsersStorage) Save(arg0 context.Context, arg1 entities.User) (entities.User, error) {
+// FindByID mocks base method.
+func (m *MockUsersStorage) FindByID(arg0 context.Context, arg1 string) (*entities.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Save", arg0, arg1)
-	ret0, _ := ret[0].(entities.User)
+	ret := m.ctrl.Call(m, "FindByID", arg0, arg1)
+	ret0, _ := ret[0].(*entities.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
+}
+
+// FindByID indicates an expected call of FindByID.
+func (mr *MockUsersStorageMockRecorder) FindByID(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByID", reflect.TypeOf((*MockUsersStorage)(nil).FindByID), arg0, arg1)
+}
+
+// Save mocks base method.
+func (m *MockUsersStorage) Save(arg0 context.Context, arg1 entities.User) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Save", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Save indicates an expected call of Save.

@@ -8,7 +8,7 @@ func NewBcryptPasswordHasher() *BcryptPasswordHasher {
 	return &BcryptPasswordHasher{}
 }
 
-func HashPassword(password string) (string, error) {
+func (h *BcryptPasswordHasher) HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
 		return "", err
@@ -16,7 +16,7 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
-func IsValidPasswordHash(password, hash string) bool {
+func (h *BcryptPasswordHasher) IsValidPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }

@@ -3,7 +3,7 @@ package entities
 import "time"
 
 type Token struct {
-	accessToken  string
-	refreshToken string
-	expiration   time.Time
+	AccessToken  string
+	RefreshToken string
+	Expiration   time.Time
 }
