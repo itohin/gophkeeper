@@ -17,9 +17,9 @@ func ValidateEmail() func(string) error {
 	}
 }
 
-func ValidateConfirmationCode(code string) func(string) error {
+func ValidateConfirmationCode() func(string) error {
 	return func(input string) error {
-		if input != code {
+		if len(input) < 1 {
 			return fmt.Errorf("неправильный код подтверждения: %s/n", input)
 		}
 		return nil

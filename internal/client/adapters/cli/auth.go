@@ -19,6 +19,10 @@ func (c *Cli) authMenu() (string, error) {
 			Label:  registerLabel,
 			Action: register,
 		},
+		{
+			Label:  verifyLabel,
+			Action: verify,
+		},
 	})
 }
 
@@ -53,18 +57,6 @@ func (c *Cli) register() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	confirmationCode := c.codeGenerator.GetCode()
-	confirmationMessage := "Для подтверждения адреса электронной почты в сервисе gophkeeper, введите пожалуйста код подтверждения: " + confirmationCode
-	err = c.mailer.SendMail([]string{login}, confirmationMessage)
-	if err != nil {
-		return "", err
-	}
-	codePrompt := prompt.PromptContent{}
-	codePrompt.Label = "На указанный вами email отправлен код подтверждения. Введите код для продолжения регистрации: "
-	_, err = c.prompt.PromptGetInput(codePrompt, validator.ValidateConfirmationCode(confirmationCode))
-	if err != nil {
-		return "", err
-	}
 	passwordPrompt := prompt.PromptContent{
 		Label: "Введите пароль(не менее 8 символов в разном регистре: буквы, цифры, спецсимволы.): ",
 		Mask:  42,
@@ -75,6 +67,39 @@ func (c *Cli) register() (string, error) {
 	}
 
 	err = c.auth.Register(context.Background(), login, password)
+	if err != nil {
+		return "", err
+	}
+	codePrompt := prompt.PromptContent{}
+	codePrompt.Label = "На указанный вами email отправлен код подтверждения. Введите код для продолжения регистрации: "
+	otp, err := c.prompt.PromptGetInput(codePrompt, validator.ValidateConfirmationCode())
+	if err != nil {
+		return "", err
+	}
+
+	err = c.auth.Verify(context.Background(), login, otp)
+	if err != nil {
+		return "", err
+	}
+
+	return dataMenu, nil
+}
+
+func (c *Cli) verify() (string, error) {
+	loginPrompt := prompt.PromptContent{}
+	loginPrompt.Label = "Введите указанный при регистрации email: "
+	login, err := c.prompt.PromptGetInput(loginPrompt, validator.ValidateEmail())
+	if err != nil {
+		return "", err
+	}
+	codePrompt := prompt.PromptContent{}
+	codePrompt.Label = "Введите код подтверждения, полученный по email, для продолжения регистрации: "
+	otp, err := c.prompt.PromptGetInput(codePrompt, validator.ValidateConfirmationCode())
+	if err != nil {
+		return "", err
+	}
+
+	err = c.auth.Verify(context.Background(), login, otp)
 	if err != nil {
 		return "", err
 	}

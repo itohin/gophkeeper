@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/itohin/gophkeeper/internal/server/entities"
+	"github.com/itohin/gophkeeper/internal/server/usecases"
 	"time"
 )
 
@@ -116,7 +117,7 @@ func (a *AuthUseCase) Register(ctx context.Context, email, password string) erro
 
 	passwordHash, err := a.hash.HashPassword(password)
 	if err != nil {
-		return err
+		return usecases.NewInvalidArgumentError(err)
 	}
 	uuid, err := a.uuid.Generate()
 	if err != nil {

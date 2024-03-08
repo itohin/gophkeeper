@@ -30,6 +30,10 @@ func TestCli_Auth(t *testing.T) {
 			Label:  registerLabel,
 			Action: register,
 		},
+		{
+			Label:  verifyLabel,
+			Action: verify,
+		},
 	}
 
 	tests := []struct {
@@ -56,6 +60,12 @@ func TestCli_Auth(t *testing.T) {
 			wantAction: "register",
 			wantErr:    assert.NoError,
 		},
+		{
+			name:       "verify",
+			err:        nil,
+			wantAction: "verify",
+			wantErr:    assert.NoError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -75,19 +85,15 @@ func TestCli_Register(t *testing.T) {
 	defer ctrl.Finish()
 
 	prompter := mocks.NewMockPrompter(ctrl)
-	mailer := mocks.NewMockMailer(ctrl)
 	log := mocks.NewMockLogger(ctrl)
-	codegen := mocks.NewMockGenerator(ctrl)
 	auth := mocks.NewMockAuth(ctrl)
 
 	log.EXPECT().Info(gomock.Any()).AnyTimes()
 
 	c := &Cli{
-		log:           log,
-		prompt:        prompter,
-		mailer:        mailer,
-		codeGenerator: codegen,
-		auth:          auth,
+		log:    log,
+		prompt: prompter,
+		auth:   auth,
 	}
 
 	loginPrompt := prompt.PromptContent{}
@@ -112,58 +118,17 @@ func TestCli_Register(t *testing.T) {
 			name: "login error",
 			mockTimes: map[string]int{
 				"loginPrompt":    1,
-				"codeGen":        0,
-				"sendMail":       0,
-				"codePrompt":     0,
 				"passwordPrompt": 0,
-				"auth":           0,
+				"auth_register":  0,
+				"codePrompt":     0,
+				"auth_verify":    0,
 			},
 			errors: map[string]error{
 				"loginPrompt":    errors.New("login error"),
-				"sendMail":       nil,
+				"passwordPrompt": nil,
+				"auth_register":  nil,
 				"codePrompt":     nil,
-				"passwordPrompt": nil,
-				"auth":           nil,
-			},
-			wantAction: "",
-			wantErr:    assert.Error,
-		},
-		{
-			name: "mail error",
-			mockTimes: map[string]int{
-				"loginPrompt":    1,
-				"codeGen":        1,
-				"sendMail":       1,
-				"codePrompt":     0,
-				"passwordPrompt": 0,
-				"auth":           0,
-			},
-			errors: map[string]error{
-				"loginPrompt":    nil,
-				"sendMail":       errors.New("mail error"),
-				"codePrompt":     nil,
-				"passwordPrompt": nil,
-				"auth":           nil,
-			},
-			wantAction: "",
-			wantErr:    assert.Error,
-		},
-		{
-			name: "code error",
-			mockTimes: map[string]int{
-				"loginPrompt":    1,
-				"codeGen":        1,
-				"sendMail":       1,
-				"codePrompt":     1,
-				"passwordPrompt": 0,
-				"auth":           0,
-			},
-			errors: map[string]error{
-				"loginPrompt":    nil,
-				"sendMail":       nil,
-				"codePrompt":     errors.New("code error"),
-				"passwordPrompt": nil,
-				"auth":           nil,
+				"auth_verify":    nil,
 			},
 			wantAction: "",
 			wantErr:    assert.Error,
@@ -172,18 +137,17 @@ func TestCli_Register(t *testing.T) {
 			name: "password error",
 			mockTimes: map[string]int{
 				"loginPrompt":    1,
-				"codeGen":        1,
-				"sendMail":       1,
-				"codePrompt":     1,
 				"passwordPrompt": 1,
-				"auth":           0,
+				"auth_register":  0,
+				"codePrompt":     0,
+				"auth_verify":    0,
 			},
 			errors: map[string]error{
 				"loginPrompt":    nil,
-				"sendMail":       nil,
-				"codePrompt":     nil,
 				"passwordPrompt": errors.New("password error"),
-				"auth":           nil,
+				"auth_register":  nil,
+				"codePrompt":     nil,
+				"auth_verify":    nil,
 			},
 			wantAction: "",
 			wantErr:    assert.Error,
@@ -192,18 +156,55 @@ func TestCli_Register(t *testing.T) {
 			name: "auth register error",
 			mockTimes: map[string]int{
 				"loginPrompt":    1,
-				"codeGen":        1,
-				"sendMail":       1,
-				"codePrompt":     1,
 				"passwordPrompt": 1,
-				"auth":           1,
+				"auth_register":  1,
+				"codePrompt":     0,
+				"auth_verify":    0,
 			},
 			errors: map[string]error{
 				"loginPrompt":    nil,
-				"sendMail":       nil,
-				"codePrompt":     nil,
 				"passwordPrompt": nil,
-				"auth":           errors.New("register error"),
+				"auth_register":  errors.New("register error"),
+				"codePrompt":     nil,
+				"auth_verify":    nil,
+			},
+			wantAction: "",
+			wantErr:    assert.Error,
+		},
+		{
+			name: "otp code error",
+			mockTimes: map[string]int{
+				"loginPrompt":    1,
+				"passwordPrompt": 1,
+				"auth_register":  1,
+				"codePrompt":     1,
+				"auth_verify":    0,
+			},
+			errors: map[string]error{
+				"loginPrompt":    nil,
+				"passwordPrompt": nil,
+				"auth_register":  nil,
+				"codePrompt":     errors.New("code error"),
+				"auth_verify":    nil,
+			},
+			wantAction: "",
+			wantErr:    assert.Error,
+		},
+		{
+			name: "auth verify error",
+			mockTimes: map[string]int{
+				"loginPrompt":    1,
+				"passwordPrompt": 1,
+				"auth_register":  1,
+				"codePrompt":     1,
+				"auth_verify":    1,
+			},
+			errors: map[string]error{
+				"loginPrompt":    nil,
+				"passwordPrompt": nil,
+				"auth_register":  nil,
+				"codePrompt":     nil,
+				"auth_verify":    errors.New("auth verify error"),
 			},
 			wantAction: "",
 			wantErr:    assert.Error,
@@ -212,18 +213,17 @@ func TestCli_Register(t *testing.T) {
 			name: "success",
 			mockTimes: map[string]int{
 				"loginPrompt":    1,
-				"codeGen":        1,
-				"sendMail":       1,
-				"codePrompt":     1,
 				"passwordPrompt": 1,
-				"auth":           1,
+				"auth_register":  1,
+				"codePrompt":     1,
+				"auth_verify":    1,
 			},
 			errors: map[string]error{
 				"loginPrompt":    nil,
-				"sendMail":       nil,
-				"codePrompt":     nil,
 				"passwordPrompt": nil,
-				"auth":           nil,
+				"auth_register":  nil,
+				"codePrompt":     nil,
+				"auth_verify":    nil,
 			},
 			wantAction: "dataMenu",
 			wantErr:    assert.NoError,
@@ -233,11 +233,10 @@ func TestCli_Register(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			prompter.EXPECT().PromptGetInput(loginPrompt, gomock.Any()).Return("a@a.com", tt.errors["loginPrompt"]).Times(tt.mockTimes["loginPrompt"])
-			codegen.EXPECT().GetCode().Return("1111").Times(tt.mockTimes["codeGen"])
-			mailer.EXPECT().SendMail([]string{"a@a.com"}, "Для подтверждения адреса электронной почты в сервисе gophkeeper, введите пожалуйста код подтверждения: 1111").Return(tt.errors["sendMail"]).Times(tt.mockTimes["sendMail"])
-			prompter.EXPECT().PromptGetInput(codePrompt, gomock.Any()).Return("1111", tt.errors["codePrompt"]).Times(tt.mockTimes["codePrompt"])
 			prompter.EXPECT().PromptGetInput(passwordPrompt, gomock.Any()).Return("tesT@pass1word", tt.errors["passwordPrompt"]).Times(tt.mockTimes["passwordPrompt"])
-			auth.EXPECT().Register(gomock.Any(), "a@a.com", "tesT@pass1word").Return(tt.errors["auth"]).Times(tt.mockTimes["auth"])
+			auth.EXPECT().Register(gomock.Any(), "a@a.com", "tesT@pass1word").Return(tt.errors["auth_register"]).Times(tt.mockTimes["auth_register"])
+			prompter.EXPECT().PromptGetInput(codePrompt, gomock.Any()).Return("1111", tt.errors["codePrompt"]).Times(tt.mockTimes["codePrompt"])
+			auth.EXPECT().Verify(gomock.Any(), "a@a.com", "1111").Return(tt.errors["auth_verify"]).Times(tt.mockTimes["auth_verify"])
 
 			_, err := c.register()
 			tt.wantErr(t, err, fmt.Sprintf("Register()"))
@@ -347,6 +346,105 @@ func TestCli_Login(t *testing.T) {
 			action, err := c.login()
 			assert.Equal(t, action, tt.wantAction)
 			tt.wantErr(t, err, fmt.Sprintf("Login()"))
+		})
+	}
+}
+
+func TestCli_Verify(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	prompter := mocks.NewMockPrompter(ctrl)
+	auth := mocks.NewMockAuth(ctrl)
+
+	c := &Cli{
+		prompt: prompter,
+		auth:   auth,
+	}
+
+	loginPrompt := prompt.PromptContent{}
+	loginPrompt.Label = "Введите указанный при регистрации email: "
+
+	codePrompt := prompt.PromptContent{}
+	codePrompt.Label = "Введите код подтверждения, полученный по email, для продолжения регистрации: "
+
+	tests := []struct {
+		name       string
+		mockTimes  map[string]int
+		errors     map[string]error
+		wantAction string
+		wantErr    assert.ErrorAssertionFunc
+	}{
+		{
+			name: "login error",
+			mockTimes: map[string]int{
+				"loginPrompt": 1,
+				"codePrompt":  0,
+				"auth_verify": 0,
+			},
+			errors: map[string]error{
+				"loginPrompt": errors.New("login error"),
+				"codePrompt":  nil,
+				"auth_verify": nil,
+			},
+			wantAction: "",
+			wantErr:    assert.Error,
+		},
+		{
+			name: "otp code error",
+			mockTimes: map[string]int{
+				"loginPrompt": 1,
+				"codePrompt":  1,
+				"auth_verify": 0,
+			},
+			errors: map[string]error{
+				"loginPrompt": nil,
+				"codePrompt":  errors.New("code error"),
+				"auth_verify": nil,
+			},
+			wantAction: "",
+			wantErr:    assert.Error,
+		},
+		{
+			name: "auth verify error",
+			mockTimes: map[string]int{
+				"loginPrompt": 1,
+				"codePrompt":  1,
+				"auth_verify": 1,
+			},
+			errors: map[string]error{
+				"loginPrompt": nil,
+				"codePrompt":  nil,
+				"auth_verify": errors.New("auth verify error"),
+			},
+			wantAction: "",
+			wantErr:    assert.Error,
+		},
+		{
+			name: "success",
+			mockTimes: map[string]int{
+				"loginPrompt": 1,
+				"codePrompt":  1,
+				"auth_verify": 1,
+			},
+			errors: map[string]error{
+				"loginPrompt": nil,
+				"codePrompt":  nil,
+				"auth_verify": nil,
+			},
+			wantAction: "dataMenu",
+			wantErr:    assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			prompter.EXPECT().PromptGetInput(loginPrompt, gomock.Any()).Return("a@a.com", tt.errors["loginPrompt"]).Times(tt.mockTimes["loginPrompt"])
+			prompter.EXPECT().PromptGetInput(codePrompt, gomock.Any()).Return("1111", tt.errors["codePrompt"]).Times(tt.mockTimes["codePrompt"])
+			auth.EXPECT().Verify(gomock.Any(), "a@a.com", "1111").Return(tt.errors["auth_verify"]).Times(tt.mockTimes["auth_verify"])
+
+			_, err := c.verify()
+			tt.wantErr(t, err, fmt.Sprintf("Verify()"))
 		})
 	}
 }
