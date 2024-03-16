@@ -35,6 +35,19 @@ func ValidatePassword() func(string) error {
 	}
 }
 
+func ValidateStringLength(minLength, maxLength int) func(string) error {
+	return func(input string) error {
+		length := len([]rune(input))
+		if length < minLength {
+			return fmt.Errorf("минимальная допустимая длина строки %v/n символов", minLength)
+		}
+		if length > maxLength {
+			return fmt.Errorf("максимальная допустимая длина строки %v/n символов", maxLength)
+		}
+		return nil
+	}
+}
+
 func isValidPassword(password string) bool {
 	if len(password) < 8 || len(password) > 127 {
 		return false

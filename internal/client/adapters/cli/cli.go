@@ -18,6 +18,8 @@ type Auth interface {
 }
 
 const (
+	//роутинг
+	//auth
 	authMenu = "authMenu"
 	register = "register"
 	login    = "login"
@@ -29,12 +31,25 @@ const (
 	verifyLabel   = "Подтвердить email"
 	logoutLabel   = "Завершить работу"
 
-	dataMenu = "dataMenu"
-	getData  = "getData"
-	addData  = "addData"
+	//data
+	dataMenu    = "dataMenu"
+	getData     = "getData"
+	addData     = "addData"
+	addText     = "addText"
+	addPassword = "addPassword"
 
-	addDataLabel = "Сохранить данные"
-	getDataLabel = "Получить данные"
+	addDataLabel     = "Сохранить данные"
+	getDataLabel     = "Получить данные"
+	addTextLabel     = "Текстовые данные"
+	addPasswordLabel = "Данные для входа(логин/пароль)"
+
+	comeBackLabel = "Вернуться назад"
+
+	//типы данных
+	text     = "text"
+	password = "password"
+	card     = "card"
+	file     = "file"
 )
 
 type Cli struct {
@@ -60,14 +75,16 @@ func NewCli(
 
 	cli.router = router.NewRouter(
 		map[string]router.Command{
-			authMenu: cli.authMenu,
-			register: cli.register,
-			login:    cli.login,
-			verify:   cli.verify,
-			logout:   cli.logout,
-			dataMenu: cli.dataMenu,
-			getData:  cli.getData,
-			addData:  cli.addData,
+			authMenu:    cli.authMenu,
+			register:    cli.register,
+			login:       cli.login,
+			verify:      cli.verify,
+			logout:      cli.logout,
+			dataMenu:    cli.dataMenu,
+			getData:     cli.getData,
+			addData:     cli.addData,
+			addText:     cli.addText,
+			addPassword: cli.addPassword,
 		},
 	)
 

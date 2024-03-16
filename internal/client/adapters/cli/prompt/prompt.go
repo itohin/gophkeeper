@@ -54,7 +54,7 @@ func (p *Prompt) PromptGetSelect(pc PromptContent, items []SelectItem) (string, 
 		Label:    "{{ . }}",
 		Active:   "\u21E8 {{ .Label | cyan }}",
 		Inactive: "  {{ .Label | cyan }}",
-		Selected: "\u21E8 {{ .Label | red | cyan }}",
+		Selected: "\u21E8 {{ .Label | white }}",
 	}
 	prompt := promptui.Select{
 		Label:     pc.Label,

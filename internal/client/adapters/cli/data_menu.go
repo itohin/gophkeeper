@@ -1,8 +1,6 @@
 package cli
 
-import (
-	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
-)
+import "github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 
 func (c *Cli) dataMenu() (string, error) {
 	return c.prompt.PromptGetSelect(
@@ -24,11 +22,20 @@ func (c *Cli) dataMenu() (string, error) {
 }
 
 func (c *Cli) addData() (string, error) {
-	c.log.Info("add data")
-	return "", nil
-}
-
-func (c *Cli) getData() (string, error) {
-	c.log.Info("get data")
-	return "", nil
+	return c.prompt.PromptGetSelect(
+		prompt.PromptContent{Label: "Выберите тип данных: "},
+		[]prompt.SelectItem{
+			{
+				Label:  addTextLabel,
+				Action: addText,
+			},
+			{
+				Label:  addPasswordLabel,
+				Action: addPassword,
+			},
+			{
+				Label:  comeBackLabel,
+				Action: dataMenu,
+			},
+		})
 }
