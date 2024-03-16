@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"errors"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"time"
 )
@@ -34,4 +35,21 @@ func (j *JWTGOManager) MakeJWT(userID string) (string, error) {
 
 func (j *JWTGOManager) MakeRefreshExpiration() time.Time {
 	return time.Now().Add(j.refreshTTL)
+}
+
+func (j *JWTGOManager) GetClaims(tokenString string) (jwt.MapClaims, error) {
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected jwt signing method: %v", token.Header["alg"])
+		}
+		return []byte(j.signature), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid jwt token")
+	}
+	return claims, nil
 }

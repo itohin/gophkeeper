@@ -10,7 +10,8 @@ type Prompter interface {
 	PromptGetSelect(pc PromptContent, items []SelectItem) (string, error)
 }
 
-type Prompt struct{}
+type Prompt struct {
+}
 
 func NewPrompt() *Prompt {
 	return &Prompt{}

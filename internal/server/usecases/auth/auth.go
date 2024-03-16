@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"github.com/itohin/gophkeeper/internal/server/entities"
-	"github.com/itohin/gophkeeper/internal/server/usecases"
+	"github.com/itohin/gophkeeper/pkg/errors"
 	"time"
 )
 
@@ -84,15 +84,21 @@ func NewAuthUseCase(
 func (a *AuthUseCase) Login(ctx context.Context, email, password, fingerprint string) (*entities.Token, error) {
 	user, err := a.usersRepo.FindByEmail(ctx, email)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewInvalidArgumentError(
+			fmt.Errorf("user with email %v not found", email),
+		)
 	}
 
 	if !user.IsVerified() {
-		return nil, errors.New("user not verified")
+		return nil, errors.NewInvalidArgumentError(
+			fmt.Errorf("user email %v not verified", email),
+		)
 	}
 
-	if !a.hash.IsValidPasswordHash(user.Password, password) {
-		return nil, errors.New("wrong credentials")
+	if !a.hash.IsValidPasswordHash(password, user.Password) {
+		return nil, errors.NewInvalidArgumentError(
+			fmt.Errorf("wrong credentials"),
+		)
 	}
 	accessToken, err := a.jwt.MakeJWT(user.ID.String())
 	if err != nil {
@@ -117,7 +123,7 @@ func (a *AuthUseCase) Register(ctx context.Context, email, password string) erro
 
 	passwordHash, err := a.hash.HashPassword(password)
 	if err != nil {
-		return usecases.NewInvalidArgumentError(err)
+		return err
 	}
 	uuid, err := a.uuid.Generate()
 	if err != nil {
@@ -145,7 +151,9 @@ func (a *AuthUseCase) Register(ctx context.Context, email, password string) erro
 func (a *AuthUseCase) Verify(ctx context.Context, email, otp, fingerprint string) (*entities.Token, error) {
 	user, err := a.usersRepo.FindByEmail(ctx, email)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewInvalidArgumentError(
+			fmt.Errorf("user with email %v not found", email),
+		)
 	}
 	err = user.Verify(otp)
 	if err != nil {
@@ -198,10 +206,10 @@ func (a *AuthUseCase) Refresh(ctx context.Context, sessionID, fingerprint string
 		return nil, err
 	}
 	if session.IsExpired() {
-		return nil, errors.New("token expired")
+		return nil, fmt.Errorf("token expired")
 	}
 	if session.FingerPrint != fingerprint {
-		return nil, errors.New("invalid token")
+		return nil, fmt.Errorf("invalid token")
 	}
 
 	accessToken, err := a.jwt.MakeJWT(session.UserID.String())

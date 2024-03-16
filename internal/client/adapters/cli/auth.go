@@ -106,3 +106,7 @@ func (c *Cli) verify() (string, error) {
 
 	return dataMenu, nil
 }
+
+func (c *Cli) logout() (string, error) {
+	return "", c.auth.Logout(context.Background())
+}

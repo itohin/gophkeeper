@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"errors"
-	"github.com/itohin/gophkeeper/internal/server/usecases"
+	errors2 "github.com/itohin/gophkeeper/pkg/errors"
 	"github.com/itohin/gophkeeper/pkg/logger"
 	pb "github.com/itohin/gophkeeper/proto"
 	"google.golang.org/grpc"
@@ -20,6 +20,7 @@ func NewServer(auth Auth, log logger.Logger) *Server {
 	srv := grpc.NewServer()
 	pb.RegisterAuthServer(srv, &AuthServer{
 		auth: auth,
+		log:  log,
 	})
 
 	return &Server{
@@ -45,7 +46,7 @@ func (s *Server) Stop(ctx context.Context) {
 }
 
 func getErrorCode(err error) codes.Code {
-	var invalidArgument *usecases.InvalidArgumentError
+	var invalidArgument *errors2.InvalidArgumentError
 	if errors.As(err, &invalidArgument) {
 		return codes.InvalidArgument
 	}

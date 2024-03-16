@@ -460,7 +460,7 @@ func TestAuthUseCase_Login(t *testing.T) {
 			}
 
 			usersRepo.EXPECT().FindByEmail(gomock.Any(), "email@mall.ru").Return(&user, tt.errors["users_repo_find"]).Times(tt.mockTimes["users_repo_find"])
-			hash.EXPECT().IsValidPasswordHash("password_hash", "password").Return(tt.isPasswordValid).Times(tt.mockTimes["password_hash"])
+			hash.EXPECT().IsValidPasswordHash("password", "password_hash").Return(tt.isPasswordValid).Times(tt.mockTimes["password_hash"])
 			jwtManager.EXPECT().MakeJWT(user.ID.String()).Return("jwt.token", tt.errors["jwt"]).Times(tt.mockTimes["jwt"])
 			uuid.EXPECT().Generate().Return(sessionId, tt.errors["uuid"]).Times(tt.mockTimes["uuid"])
 			jwtManager.EXPECT().MakeRefreshExpiration().Return(refreshExpiration).Times(tt.mockTimes["get_refresh_ttl"])

@@ -16,6 +16,10 @@ func (c *Cli) dataMenu() (string, error) {
 				Label:  getDataLabel,
 				Action: getData,
 			},
+			{
+				Label:  logoutLabel,
+				Action: logout,
+			},
 		})
 }
 

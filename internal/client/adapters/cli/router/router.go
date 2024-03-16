@@ -1,6 +1,8 @@
 package router
 
-import "errors"
+import (
+	"errors"
+)
 
 type Command func() (string, error)
 
