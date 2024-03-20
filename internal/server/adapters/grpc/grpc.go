@@ -16,11 +16,15 @@ type Server struct {
 	log logger.Logger
 }
 
-func NewServer(auth Auth, log logger.Logger) *Server {
+func NewServer(auth Auth, secrets Secrets, log logger.Logger) *Server {
 	srv := grpc.NewServer()
 	pb.RegisterAuthServer(srv, &AuthServer{
 		auth: auth,
 		log:  log,
+	})
+	pb.RegisterSecretsServer(srv, &SecretsServer{
+		secrets: secrets,
+		log:     log,
 	})
 
 	return &Server{

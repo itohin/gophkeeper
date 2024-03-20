@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"github.com/itohin/gophkeeper/internal/client/entities"
 	pb "github.com/itohin/gophkeeper/proto"
 )
 
@@ -26,9 +25,9 @@ func (c *Client) Verify(ctx context.Context, email, otp string) error {
 	if err != nil {
 		return handleError(err)
 	}
-	c.token = &entities.Token{
-		AccessToken:  t.Token.AccessToken,
-		RefreshToken: t.Token.RefreshToken,
+	err = c.token.Update(t.Token.AccessToken, t.Token.RefreshToken)
+	if err != nil {
+		return handleError(err)
 	}
 	return nil
 }
@@ -42,9 +41,9 @@ func (c *Client) Login(ctx context.Context, email, password string) error {
 	if err != nil {
 		return handleError(err)
 	}
-	c.token = &entities.Token{
-		AccessToken:  t.Token.AccessToken,
-		RefreshToken: t.Token.RefreshToken,
+	err = c.token.Update(t.Token.AccessToken, t.Token.RefreshToken)
+	if err != nil {
+		return handleError(err)
 	}
 	return nil
 }
@@ -57,9 +56,9 @@ func (c *Client) refresh(ctx context.Context) error {
 	if err != nil {
 		return handleError(err)
 	}
-	c.token = &entities.Token{
-		AccessToken:  t.Token.AccessToken,
-		RefreshToken: t.Token.RefreshToken,
+	err = c.token.Update(t.Token.AccessToken, t.Token.RefreshToken)
+	if err != nil {
+		return handleError(err)
 	}
 	return nil
 }

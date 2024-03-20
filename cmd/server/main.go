@@ -5,6 +5,7 @@ import (
 	"github.com/itohin/gophkeeper/internal/server/adapters/db/postgres"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc"
 	"github.com/itohin/gophkeeper/internal/server/usecases/auth"
+	"github.com/itohin/gophkeeper/internal/server/usecases/secrets"
 	"github.com/itohin/gophkeeper/pkg/database"
 	"github.com/itohin/gophkeeper/pkg/hash/password"
 	"github.com/itohin/gophkeeper/pkg/jwt"
@@ -61,10 +62,11 @@ func main() {
 
 func setupServer(db *database.PgxPoolDB, l logger.Logger) (*grpc.Server, error) {
 	authUseCase, err := setupAuth(db, l)
+	secretsUseCase := secrets.NewSecretsUseCase()
 	if err != nil {
 		return nil, err
 	}
-	return grpc.NewServer(authUseCase, l), nil
+	return grpc.NewServer(authUseCase, secretsUseCase, l), nil
 }
 
 func setupAuth(db *database.PgxPoolDB, l logger.Logger) (*auth.AuthUseCase, error) {

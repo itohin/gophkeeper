@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"fmt"
+	ji "github.com/itohin/gophkeeper/internal/client/adapters/grpc/interceptors/jwt"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/pkg/errors"
 	pb "github.com/itohin/gophkeeper/proto"
@@ -14,20 +15,31 @@ import (
 type Client struct {
 	conn        *grpc.ClientConn
 	auth        pb.AuthClient
+	secrets     pb.SecretsClient
 	shutdownCh  chan struct{}
 	token       *entities.Token
 	fingerPrint string
 }
 
-func NewClient(fingerPrint string, shutdownCh chan struct{}) (*Client, error) {
-	conn, err := grpc.Dial(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()))
+func NewClient(fingerPrint string, token *entities.Token, shutdownCh chan struct{}) (*Client, error) {
+	conn, err := grpc.Dial(
+		":3200",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainUnaryInterceptor(
+			ji.UnaryClientInterceptor(token),
+		),
+	)
 	if err != nil {
 		return nil, err
 	}
+	auth := pb.NewAuthClient(conn)
+	token.SetClient(auth)
 	return &Client{
 		conn:        conn,
-		auth:        pb.NewAuthClient(conn),
+		auth:        auth,
+		secrets:     pb.NewSecretsClient(conn),
 		shutdownCh:  shutdownCh,
+		token:       token,
 		fingerPrint: fingerPrint,
 	}, nil
 }

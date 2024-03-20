@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/router"
+	"github.com/itohin/gophkeeper/internal/client/entities"
 	errors2 "github.com/itohin/gophkeeper/pkg/errors"
 	"github.com/itohin/gophkeeper/pkg/logger"
 )
@@ -15,6 +16,11 @@ type Auth interface {
 	Register(ctx context.Context, login, password string) error
 	Verify(ctx context.Context, login, otp string) error
 	Logout(ctx context.Context) error
+}
+
+type Secrets interface {
+	CreateText(ctx context.Context, secret *entities.Secret, text string) error
+	CreatePassword(ctx context.Context, secret *entities.Secret, password *entities.Password) error
 }
 
 const (
@@ -44,12 +50,6 @@ const (
 	addPasswordLabel = "Данные для входа(логин/пароль)"
 
 	comeBackLabel = "Вернуться назад"
-
-	//типы данных
-	text     = "text"
-	password = "password"
-	card     = "card"
-	file     = "file"
 )
 
 type Cli struct {
@@ -57,6 +57,7 @@ type Cli struct {
 	log        logger.Logger
 	prompt     prompt.Prompter
 	auth       Auth
+	secrets    Secrets
 	shutdownCh chan struct{}
 }
 
@@ -64,12 +65,14 @@ func NewCli(
 	logger logger.Logger,
 	prompt prompt.Prompter,
 	auth Auth,
+	secrets Secrets,
 	shutdownCh chan struct{},
 ) *Cli {
 	cli := &Cli{
 		log:        logger,
 		prompt:     prompt,
 		auth:       auth,
+		secrets:    secrets,
 		shutdownCh: shutdownCh,
 	}
 

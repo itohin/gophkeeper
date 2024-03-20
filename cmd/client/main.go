@@ -6,10 +6,14 @@ import (
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/grpc"
+	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/internal/client/usecases/auth"
+	"github.com/itohin/gophkeeper/internal/client/usecases/secrets"
+	"github.com/itohin/gophkeeper/pkg/jwt"
 	"github.com/itohin/gophkeeper/pkg/logger"
 	"io"
 	"os"
+	"time"
 )
 
 func main() {
@@ -21,16 +25,23 @@ func main() {
 	if err != nil {
 		l.Fatal(err)
 	}
-	client, err := grpc.NewClient(fingerPrint, shutdownCh)
+	//TODO: maybe change to jwtClaimManager
+	jwtGen, err := jwt.NewJWTGOManager("secret", 60*time.Second, 360*time.Second)
+	if err != nil {
+		l.Fatal(err)
+	}
+	token := entities.NewToken(jwtGen)
+	client, err := grpc.NewClient(fingerPrint, token, shutdownCh)
 	if err != nil {
 		l.Fatal(err)
 	}
 	defer client.Close()
 
 	authUseCase := auth.NewAuth(client)
+	secretsUseCase := secrets.NewSecrets(client)
 
 	p := prompt.NewPrompt()
-	app := cli.NewCli(l, p, authUseCase, shutdownCh)
+	app := cli.NewCli(l, p, authUseCase, secretsUseCase, shutdownCh)
 
 	err = app.Start()
 	if err != nil {
