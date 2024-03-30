@@ -1,18 +1,33 @@
 package entities
 
 const (
-	TextType = iota + 1
-	PasswordType
+	TypeText = iota + 1
+	TypePassword
 )
 
 type Secret struct {
+	ID         string
 	Name       string
-	SecretType int64
+	SecretType uint32
 	Notes      string
-	Data       string
+	Data       interface{}
+	UserID     string
+}
+
+type Text struct {
+	Text string
 }
 
 type Password struct {
 	Login    string
 	Password string
+}
+
+type SecretDTO struct {
+	ID         string
+	Name       string
+	SecretType uint32
+	Notes      string
+	Data       []byte
+	UserID     string
 }

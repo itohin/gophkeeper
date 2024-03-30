@@ -45,21 +45,7 @@ func (c *Client) Login(ctx context.Context, email, password string) error {
 	if err != nil {
 		return handleError(err)
 	}
-	return nil
-}
-
-func (c *Client) refresh(ctx context.Context) error {
-	t, err := c.auth.Refresh(ctx, &pb.RefreshRequest{
-		SessionId:   c.token.RefreshToken,
-		Fingerprint: c.fingerPrint,
-	})
-	if err != nil {
-		return handleError(err)
-	}
-	err = c.token.Update(t.Token.AccessToken, t.Token.RefreshToken)
-	if err != nil {
-		return handleError(err)
-	}
+	c.SearchSecrets(ctx)
 	return nil
 }
 

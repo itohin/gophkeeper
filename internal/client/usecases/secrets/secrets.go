@@ -8,15 +8,24 @@ import (
 type Client interface {
 	CreateText(ctx context.Context, secret *entities.Secret, text string) error
 	CreatePassword(ctx context.Context, secret *entities.Secret, password *entities.Password) error
+	SearchSecrets(ctx context.Context) (map[string]*entities.Secret, error)
+}
+
+type Storage interface {
+	SaveSecrets(ctx context.Context, secrets map[string]*entities.Secret) error
+	GetSecrets(ctx context.Context) (map[string]*entities.Secret, error)
+	GetSecret(ctx context.Context, id string) (*entities.Secret, error)
 }
 
 type SecretsUseCase struct {
-	client Client
+	client  Client
+	storage Storage
 }
 
-func NewSecrets(client Client) *SecretsUseCase {
+func NewSecrets(client Client, storage Storage) *SecretsUseCase {
 	return &SecretsUseCase{
-		client: client,
+		client:  client,
+		storage: storage,
 	}
 }
 
@@ -34,4 +43,20 @@ func (s *SecretsUseCase) CreatePassword(ctx context.Context, secret *entities.Se
 		return err
 	}
 	return nil
+}
+
+func (s *SecretsUseCase) GetSecrets(ctx context.Context) (map[string]*entities.Secret, error) {
+	return s.storage.GetSecrets(ctx)
+}
+
+func (s *SecretsUseCase) GetSecret(ctx context.Context, id string) (*entities.Secret, error) {
+	return s.storage.GetSecret(ctx, id)
+}
+
+func (s *SecretsUseCase) SyncSecrets(ctx context.Context) error {
+	secrets, err := s.client.SearchSecrets(ctx)
+	if err != nil {
+		return err
+	}
+	return s.storage.SaveSecrets(context.Background(), secrets)
 }

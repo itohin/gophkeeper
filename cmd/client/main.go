@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/grpc"
+	"github.com/itohin/gophkeeper/internal/client/adapters/storage"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/internal/client/usecases/auth"
 	"github.com/itohin/gophkeeper/internal/client/usecases/secrets"
@@ -20,6 +22,7 @@ func main() {
 	l := logger.NewLogger()
 
 	shutdownCh := make(chan struct{})
+	syncCh := make(chan int, 1)
 
 	fingerPrint, err := makeFingerPrint()
 	if err != nil {
@@ -37,8 +40,18 @@ func main() {
 	}
 	defer client.Close()
 
-	authUseCase := auth.NewAuth(client)
-	secretsUseCase := secrets.NewSecrets(client)
+	memoryStorage := storage.NewMemoryStorage()
+	authUseCase := auth.NewAuth(client, syncCh)
+	secretsUseCase := secrets.NewSecrets(client, memoryStorage)
+
+	go func() {
+		for {
+			select {
+			case <-syncCh:
+				secretsUseCase.SyncSecrets(context.Background())
+			}
+		}
+	}()
 
 	p := prompt.NewPrompt()
 	app := cli.NewCli(l, p, authUseCase, secretsUseCase, shutdownCh)

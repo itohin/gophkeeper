@@ -21,6 +21,8 @@ type Auth interface {
 type Secrets interface {
 	CreateText(ctx context.Context, secret *entities.Secret, text string) error
 	CreatePassword(ctx context.Context, secret *entities.Secret, password *entities.Password) error
+	GetSecrets(ctx context.Context) (map[string]*entities.Secret, error)
+	GetSecret(ctx context.Context, id string) (*entities.Secret, error)
 }
 
 const (

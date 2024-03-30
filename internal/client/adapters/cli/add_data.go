@@ -32,8 +32,9 @@ func (c *Cli) addText() (string, error) {
 	err = c.secrets.CreateText(
 		context.Background(),
 		&entities.Secret{
-			Name:  name,
-			Notes: notes,
+			Name:       name,
+			Notes:      notes,
+			SecretType: entities.TypeText,
 		},
 		text,
 	)
@@ -75,8 +76,9 @@ func (c *Cli) addPassword() (string, error) {
 	err = c.secrets.CreatePassword(
 		context.Background(),
 		&entities.Secret{
-			Name:  name,
-			Notes: notes,
+			Name:       name,
+			Notes:      notes,
+			SecretType: entities.TypePassword,
 		},
 		&entities.Password{
 			Login:    login,

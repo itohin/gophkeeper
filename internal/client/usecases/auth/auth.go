@@ -13,11 +13,13 @@ type Client interface {
 
 type AuthUseCase struct {
 	client Client
+	syncCh chan int
 }
 
-func NewAuth(client Client) *AuthUseCase {
+func NewAuth(client Client, syncCh chan int) *AuthUseCase {
 	return &AuthUseCase{
 		client: client,
+		syncCh: syncCh,
 	}
 }
 
@@ -38,6 +40,7 @@ func (a *AuthUseCase) Login(ctx context.Context, login, password string) error {
 	if err != nil {
 		return err
 	}
+	a.syncCh <- 1
 	return nil
 }
 

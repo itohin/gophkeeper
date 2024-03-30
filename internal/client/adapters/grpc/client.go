@@ -26,7 +26,7 @@ func NewClient(fingerPrint string, token *entities.Token, shutdownCh chan struct
 		":3200",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(
-			ji.UnaryClientInterceptor(token),
+			ji.UnaryClientInterceptor(token, fingerPrint),
 		),
 	)
 	if err != nil {

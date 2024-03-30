@@ -22,8 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SecretsClient interface {
-	CreateText(ctx context.Context, in *CreateTextRequest, opts ...grpc.CallOption) (*CreateTextResponse, error)
-	CreatePassword(ctx context.Context, in *CreatePasswordRequest, opts ...grpc.CallOption) (*CreatePasswordResponse, error)
+	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error)
+	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 }
 
 type secretsClient struct {
@@ -34,18 +34,18 @@ func NewSecretsClient(cc grpc.ClientConnInterface) SecretsClient {
 	return &secretsClient{cc}
 }
 
-func (c *secretsClient) CreateText(ctx context.Context, in *CreateTextRequest, opts ...grpc.CallOption) (*CreateTextResponse, error) {
-	out := new(CreateTextResponse)
-	err := c.cc.Invoke(ctx, "/gophkeeper.Secrets/CreateText", in, out, opts...)
+func (c *secretsClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error) {
+	out := new(CreateResponse)
+	err := c.cc.Invoke(ctx, "/gophkeeper.Secrets/Create", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *secretsClient) CreatePassword(ctx context.Context, in *CreatePasswordRequest, opts ...grpc.CallOption) (*CreatePasswordResponse, error) {
-	out := new(CreatePasswordResponse)
-	err := c.cc.Invoke(ctx, "/gophkeeper.Secrets/CreatePassword", in, out, opts...)
+func (c *secretsClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error) {
+	out := new(SearchResponse)
+	err := c.cc.Invoke(ctx, "/gophkeeper.Secrets/Search", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +56,8 @@ func (c *secretsClient) CreatePassword(ctx context.Context, in *CreatePasswordRe
 // All implementations must embed UnimplementedSecretsServer
 // for forward compatibility
 type SecretsServer interface {
-	CreateText(context.Context, *CreateTextRequest) (*CreateTextResponse, error)
-	CreatePassword(context.Context, *CreatePasswordRequest) (*CreatePasswordResponse, error)
+	Create(context.Context, *CreateRequest) (*CreateResponse, error)
+	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	mustEmbedUnimplementedSecretsServer()
 }
 
@@ -65,11 +65,11 @@ type SecretsServer interface {
 type UnimplementedSecretsServer struct {
 }
 
-func (UnimplementedSecretsServer) CreateText(context.Context, *CreateTextRequest) (*CreateTextResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateText not implemented")
+func (UnimplementedSecretsServer) Create(context.Context, *CreateRequest) (*CreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedSecretsServer) CreatePassword(context.Context, *CreatePasswordRequest) (*CreatePasswordResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreatePassword not implemented")
+func (UnimplementedSecretsServer) Search(context.Context, *SearchRequest) (*SearchResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Search not implemented")
 }
 func (UnimplementedSecretsServer) mustEmbedUnimplementedSecretsServer() {}
 
@@ -84,38 +84,38 @@ func RegisterSecretsServer(s grpc.ServiceRegistrar, srv SecretsServer) {
 	s.RegisterService(&Secrets_ServiceDesc, srv)
 }
 
-func _Secrets_CreateText_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateTextRequest)
+func _Secrets_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SecretsServer).CreateText(ctx, in)
+		return srv.(SecretsServer).Create(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gophkeeper.Secrets/CreateText",
+		FullMethod: "/gophkeeper.Secrets/Create",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SecretsServer).CreateText(ctx, req.(*CreateTextRequest))
+		return srv.(SecretsServer).Create(ctx, req.(*CreateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Secrets_CreatePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreatePasswordRequest)
+func _Secrets_Search_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SecretsServer).CreatePassword(ctx, in)
+		return srv.(SecretsServer).Search(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gophkeeper.Secrets/CreatePassword",
+		FullMethod: "/gophkeeper.Secrets/Search",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SecretsServer).CreatePassword(ctx, req.(*CreatePasswordRequest))
+		return srv.(SecretsServer).Search(ctx, req.(*SearchRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -128,12 +128,12 @@ var Secrets_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*SecretsServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateText",
-			Handler:    _Secrets_CreateText_Handler,
+			MethodName: "Create",
+			Handler:    _Secrets_Create_Handler,
 		},
 		{
-			MethodName: "CreatePassword",
-			Handler:    _Secrets_CreatePassword_Handler,
+			MethodName: "Search",
+			Handler:    _Secrets_Search_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
