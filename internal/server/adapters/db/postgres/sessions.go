@@ -62,6 +62,16 @@ func (r *SessionsRepository) FindByFingerPrint(ctx context.Context, userId, fing
 	return &session, nil
 }
 
+func (r *SessionsRepository) DeleteByUserAndFingerPrint(ctx context.Context, userId, fingerPrint string) error {
+	query := `DELETE from sessions where user_id = $1 and fingerprint = $2`
+	_, err := r.db.Pool.Exec(ctx, query, userId, fingerPrint)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *SessionsRepository) DeleteByID(ctx context.Context, sessionID string) error {
 	query := `DELETE from sessions where id = $1`
 	result, err := r.db.Pool.Exec(ctx, query, sessionID)

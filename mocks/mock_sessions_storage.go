@@ -49,6 +49,20 @@ func (mr *MockSessionsStorageMockRecorder) DeleteByID(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByID", reflect.TypeOf((*MockSessionsStorage)(nil).DeleteByID), arg0, arg1)
 }
 
+// DeleteByUserAndFingerPrint mocks base method.
+func (m *MockSessionsStorage) DeleteByUserAndFingerPrint(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteByUserAndFingerPrint", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteByUserAndFingerPrint indicates an expected call of DeleteByUserAndFingerPrint.
+func (mr *MockSessionsStorageMockRecorder) DeleteByUserAndFingerPrint(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByUserAndFingerPrint", reflect.TypeOf((*MockSessionsStorage)(nil).DeleteByUserAndFingerPrint), arg0, arg1, arg2)
+}
+
 // FindByFingerPrint mocks base method.
 func (m *MockSessionsStorage) FindByFingerPrint(arg0 context.Context, arg1, arg2 string) (*entities.Session, error) {
 	m.ctrl.T.Helper()

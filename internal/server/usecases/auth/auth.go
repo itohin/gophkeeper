@@ -24,6 +24,7 @@ type SessionsStorage interface {
 	FindByID(ctx context.Context, id string) (*entities.Session, error)
 	FindByFingerPrint(ctx context.Context, userId, fingerPrint string) (*entities.Session, error)
 	DeleteByID(ctx context.Context, sessionID string) error
+	DeleteByUserAndFingerPrint(ctx context.Context, userId, fingerPrint string) error
 }
 
 type PasswordHasher interface {
@@ -111,6 +112,10 @@ func (a *AuthUseCase) Login(ctx context.Context, email, password, fingerprint st
 	}
 	//TODO: проверки безопасности: количество сессий у юзера(не более 5 устройств)...
 	session := entities.NewSession(sessionID, user.ID, fingerprint, a.jwt.MakeRefreshExpiration())
+	err = a.sessionsRepo.DeleteByUserAndFingerPrint(ctx, user.ID.String(), fingerprint)
+	if err != nil {
+		return nil, err
+	}
 	err = a.sessionsRepo.Save(ctx, *session)
 	if err != nil {
 		return nil, err

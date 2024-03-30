@@ -25,3 +25,15 @@ func NewDomainError(err error) error {
 func (i *DomainError) Error() string {
 	return fmt.Sprintf("%v", i.Err)
 }
+
+type AuthError struct {
+	Err error
+}
+
+func NewAuthError(err error) error {
+	return &AuthError{Err: err}
+}
+
+func (i *AuthError) Error() string {
+	return fmt.Sprintf("%v", i.Err)
+}

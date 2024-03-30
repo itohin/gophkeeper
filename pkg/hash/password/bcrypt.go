@@ -9,7 +9,7 @@ func NewBcryptPasswordHasher() *BcryptPasswordHasher {
 }
 
 func (h *BcryptPasswordHasher) HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 4)
 	if err != nil {
 		return "", err
 	}

@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"errors"
+	"github.com/itohin/gophkeeper/internal/server/adapters/grpc/interceptors/jwt"
 	errors2 "github.com/itohin/gophkeeper/pkg/errors"
 	"github.com/itohin/gophkeeper/pkg/logger"
 	pb "github.com/itohin/gophkeeper/proto"
@@ -11,16 +12,28 @@ import (
 	"net"
 )
 
+type JWTManager interface {
+	GetClaims(tokenString string) (map[string]interface{}, error)
+}
+
 type Server struct {
 	srv *grpc.Server
 	log logger.Logger
 }
 
-func NewServer(auth Auth, log logger.Logger) *Server {
-	srv := grpc.NewServer()
+func NewServer(auth Auth, secrets Secrets, log logger.Logger, jwtManager JWTManager) *Server {
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			jwt.UnaryServerInterceptor(jwtManager.GetClaims),
+		),
+	)
 	pb.RegisterAuthServer(srv, &AuthServer{
 		auth: auth,
 		log:  log,
+	})
+	pb.RegisterSecretsServer(srv, &SecretsServer{
+		secrets: secrets,
+		log:     log,
 	})
 
 	return &Server{

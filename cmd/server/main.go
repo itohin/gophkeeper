@@ -5,6 +5,7 @@ import (
 	"github.com/itohin/gophkeeper/internal/server/adapters/db/postgres"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc"
 	"github.com/itohin/gophkeeper/internal/server/usecases/auth"
+	"github.com/itohin/gophkeeper/internal/server/usecases/secrets"
 	"github.com/itohin/gophkeeper/pkg/database"
 	"github.com/itohin/gophkeeper/pkg/hash/password"
 	"github.com/itohin/gophkeeper/pkg/jwt"
@@ -31,7 +32,12 @@ func main() {
 	}
 	defer db.Pool.Close()
 
-	srv, err := setupServer(db, l)
+	jwtManager, err := jwt.NewJWTGOManager("secret", 60*time.Second, 360*time.Second)
+	if err != nil {
+		l.Fatal(err)
+	}
+
+	srv, err := setupServer(db, l, jwtManager)
 	if err != nil {
 		l.Fatal(err)
 	}
@@ -59,26 +65,25 @@ func main() {
 
 }
 
-func setupServer(db *database.PgxPoolDB, l logger.Logger) (*grpc.Server, error) {
-	authUseCase, err := setupAuth(db, l)
+func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager) (*grpc.Server, error) {
+	uuidGen := uuid.NewGoogleUUIDGenerator()
+	secretsRepo := postgres.NewSecretsRepository(db)
+
+	authUseCase, err := setupAuth(db, l, jm, uuidGen)
+	secretsUseCase := secrets.NewSecretsUseCase(uuidGen, secretsRepo)
 	if err != nil {
 		return nil, err
 	}
-	return grpc.NewServer(authUseCase, l), nil
+	return grpc.NewServer(authUseCase, secretsUseCase, l, jm), nil
 }
 
-func setupAuth(db *database.PgxPoolDB, l logger.Logger) (*auth.AuthUseCase, error) {
+func setupAuth(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, uuidGen *uuid.GoogleUUIDGenerator) (*auth.AuthUseCase, error) {
 	usersRepo := postgres.NewUsersRepository(db)
 	sessionsRepo := postgres.NewSessionsRepository(db)
 	tx := database.NewPgxTransaction(db.Pool)
-	uuidGen := uuid.NewGoogleUUIDGenerator()
-	jwtGen, err := jwt.NewJWTGOManager("secret", 60*time.Second, 360*time.Second)
-	if err != nil {
-		return nil, err
-	}
 	passwordHash := password.NewBcryptPasswordHasher()
 	otpGen := otp.NewGOTPGenerator(9)
 	smtp := mailer.NewSMTPMailer("from@gmail.com", "", "localhost", "1025", l)
 
-	return auth.NewAuthUseCase(passwordHash, uuidGen, otpGen, usersRepo, sessionsRepo, smtp, jwtGen, tx), nil
+	return auth.NewAuthUseCase(passwordHash, uuidGen, otpGen, usersRepo, sessionsRepo, smtp, jm, tx), nil
 }

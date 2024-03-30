@@ -37,7 +37,7 @@ func (j *JWTGOManager) MakeRefreshExpiration() time.Time {
 	return time.Now().Add(j.refreshTTL)
 }
 
-func (j *JWTGOManager) GetClaims(tokenString string) (jwt.MapClaims, error) {
+func (j *JWTGOManager) GetClaims(tokenString string) (map[string]interface{}, error) {
 	claims := jwt.MapClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/router"
+	"github.com/itohin/gophkeeper/internal/client/entities"
 	errors2 "github.com/itohin/gophkeeper/pkg/errors"
 	"github.com/itohin/gophkeeper/pkg/logger"
 )
@@ -17,7 +18,16 @@ type Auth interface {
 	Logout(ctx context.Context) error
 }
 
+type Secrets interface {
+	CreateText(ctx context.Context, secret *entities.Secret, text string) error
+	CreatePassword(ctx context.Context, secret *entities.Secret, password *entities.Password) error
+	GetSecrets(ctx context.Context) (map[string]*entities.Secret, error)
+	GetSecret(ctx context.Context, id string) (*entities.Secret, error)
+}
+
 const (
+	//роутинг
+	//auth
 	authMenu = "authMenu"
 	register = "register"
 	login    = "login"
@@ -29,12 +39,19 @@ const (
 	verifyLabel   = "Подтвердить email"
 	logoutLabel   = "Завершить работу"
 
-	dataMenu = "dataMenu"
-	getData  = "getData"
-	addData  = "addData"
+	//data
+	dataMenu    = "dataMenu"
+	getData     = "getData"
+	addData     = "addData"
+	addText     = "addText"
+	addPassword = "addPassword"
 
-	addDataLabel = "Сохранить данные"
-	getDataLabel = "Получить данные"
+	addDataLabel     = "Сохранить данные"
+	getDataLabel     = "Получить данные"
+	addTextLabel     = "Текстовые данные"
+	addPasswordLabel = "Данные для входа(логин/пароль)"
+
+	comeBackLabel = "Вернуться назад"
 )
 
 type Cli struct {
@@ -42,6 +59,7 @@ type Cli struct {
 	log        logger.Logger
 	prompt     prompt.Prompter
 	auth       Auth
+	secrets    Secrets
 	shutdownCh chan struct{}
 }
 
@@ -49,25 +67,29 @@ func NewCli(
 	logger logger.Logger,
 	prompt prompt.Prompter,
 	auth Auth,
+	secrets Secrets,
 	shutdownCh chan struct{},
 ) *Cli {
 	cli := &Cli{
 		log:        logger,
 		prompt:     prompt,
 		auth:       auth,
+		secrets:    secrets,
 		shutdownCh: shutdownCh,
 	}
 
 	cli.router = router.NewRouter(
 		map[string]router.Command{
-			authMenu: cli.authMenu,
-			register: cli.register,
-			login:    cli.login,
-			verify:   cli.verify,
-			logout:   cli.logout,
-			dataMenu: cli.dataMenu,
-			getData:  cli.getData,
-			addData:  cli.addData,
+			authMenu:    cli.authMenu,
+			register:    cli.register,
+			login:       cli.login,
+			verify:      cli.verify,
+			logout:      cli.logout,
+			dataMenu:    cli.dataMenu,
+			getData:     cli.getData,
+			addData:     cli.addData,
+			addText:     cli.addText,
+			addPassword: cli.addPassword,
 		},
 	)
 
