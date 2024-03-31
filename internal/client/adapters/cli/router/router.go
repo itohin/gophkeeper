@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-type Command func() (string, error)
+type Command interface{}
 
 type Router struct {
 	commands map[string]Command

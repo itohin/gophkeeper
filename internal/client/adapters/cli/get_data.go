@@ -16,7 +16,7 @@ func (c *Cli) getData() (string, error) {
 	for _, secret := range secrets {
 		p := prompt.SelectItem{
 			Label:  secret.Name + " (" + secret.GetLabel() + ")",
-			Action: secret.ID,
+			Action: showData + "/" + secret.ID,
 		}
 		menu = append(menu, p)
 	}
@@ -27,11 +27,7 @@ func (c *Cli) getData() (string, error) {
 
 	listPrompt := prompt.PromptContent{}
 	listPrompt.Label = "Выберите запись: "
-	id, err := c.prompt.PromptGetSelect(listPrompt, menu)
-	if err != nil {
-		return "", err
-	}
-	return c.showData(id)
+	return c.prompt.PromptGetSelect(listPrompt, menu)
 
 }
 

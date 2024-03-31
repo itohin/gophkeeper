@@ -9,6 +9,8 @@ import (
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	errors2 "github.com/itohin/gophkeeper/pkg/errors"
 	"github.com/itohin/gophkeeper/pkg/logger"
+	"reflect"
+	"strings"
 )
 
 type Auth interface {
@@ -45,6 +47,7 @@ const (
 	addData     = "addData"
 	addText     = "addText"
 	addPassword = "addPassword"
+	showData    = "showData"
 
 	addDataLabel     = "Сохранить данные"
 	getDataLabel     = "Получить данные"
@@ -90,6 +93,7 @@ func NewCli(
 			addData:     cli.addData,
 			addText:     cli.addText,
 			addPassword: cli.addPassword,
+			showData:    cli.showData,
 		},
 	)
 
@@ -108,11 +112,7 @@ func (c *Cli) Start() error {
 		case <-c.shutdownCh:
 			return nil
 		default:
-			cmd, err := c.router.GetCommand(action)
-			if err != nil {
-				return err
-			}
-			action, err = cmd()
+			action, err = c.Call(action)
 			if err != nil {
 				if errors.As(err, &domainError) {
 					fmt.Println("\n\n", err.Error())
@@ -123,4 +123,27 @@ func (c *Cli) Start() error {
 			}
 		}
 	}
+}
+
+func (c *Cli) Call(action string) (result string, err error) {
+	actionData := strings.Split(action, "/")
+	cmd, err := c.router.GetCommand(actionData[0])
+	params := actionData[1:]
+	fmt.Println(actionData[0], params)
+	if err != nil {
+		return "", err
+	}
+	f := reflect.ValueOf(cmd)
+	if len(params) != f.Type().NumIn() {
+		err = fmt.Errorf("the number of params is out of index")
+		return
+	}
+	in := make([]reflect.Value, len(params))
+	for k, param := range params {
+		in[k] = reflect.ValueOf(param)
+	}
+	var res []reflect.Value
+	res = f.Call(in)
+	result = res[0].String()
+	return
 }
