@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/itohin/gophkeeper/internal/server/adapters/db/postgres"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc"
+	"github.com/itohin/gophkeeper/internal/server/adapters/websocket"
+	"github.com/itohin/gophkeeper/internal/server/events"
 	"github.com/itohin/gophkeeper/internal/server/usecases/auth"
 	"github.com/itohin/gophkeeper/internal/server/usecases/secrets"
 	"github.com/itohin/gophkeeper/pkg/database"
@@ -13,6 +15,7 @@ import (
 	"github.com/itohin/gophkeeper/pkg/mailer"
 	"github.com/itohin/gophkeeper/pkg/otp"
 	"github.com/itohin/gophkeeper/pkg/uuid"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -37,10 +40,14 @@ func main() {
 		l.Fatal(err)
 	}
 
-	srv, err := setupServer(db, l, jwtManager)
+	secretEventsCh := make(chan *events.SecretEvent, 10)
+	secretsRepo := postgres.NewSecretsRepository(db)
+	srv, err := setupServer(db, l, jwtManager, secretsRepo)
 	if err != nil {
 		l.Fatal(err)
 	}
+
+	ws := websocket.NewWSNotifier(":7777", "ca.crt", "ca.key", secretEventsCh)
 	idleConnsClosed := make(chan struct{})
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -50,13 +57,38 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.Stop(ctx)
+		ws.Stop(ctx)
 		close(idleConnsClosed)
+	}()
+	go ws.Run()
+
+	go func() {
+		log.Println("start ticker")
+		ticker := time.NewTicker(time.Second * 5)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				log.Println("tick")
+				sDTO, err := secretsRepo.GetUserSecret(context.Background(), "5055231a-ce9c-4f25-9a6b-e2522e70ebd6", "d5439c04-0c11-4d3c-a524-457c41e61f8a")
+				if err != nil {
+					log.Println("get secret error: ", err)
+				}
+				ev := &events.SecretEvent{
+					EventType: events.TypeCreated,
+					Secret:    sDTO,
+				}
+
+				secretEventsCh <- ev
+			}
+		}
 	}()
 
 	err = srv.Start()
 	if err != nil {
 		l.Fatal(err)
 	}
+
 	<-idleConnsClosed
 
 	db.Pool.Close()
@@ -65,9 +97,9 @@ func main() {
 
 }
 
-func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager) (*grpc.Server, error) {
+func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, secretsRepo *postgres.SecretsRepository) (*grpc.Server, error) {
 	uuidGen := uuid.NewGoogleUUIDGenerator()
-	secretsRepo := postgres.NewSecretsRepository(db)
+	//secretsRepo := postgres.NewSecretsRepository(db)
 
 	authUseCase, err := setupAuth(db, l, jm, uuidGen)
 	secretsUseCase := secrets.NewSecretsUseCase(uuidGen, secretsRepo)

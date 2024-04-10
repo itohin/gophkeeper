@@ -15,6 +15,7 @@ type Token struct {
 	AccessToken  string
 	RefreshToken string
 	Expiration   int64
+	UserID       string
 	client       proto.AuthClient
 	jwt          JWTManager
 }
@@ -51,6 +52,7 @@ func (t *Token) Update(at, rt string) error {
 	t.AccessToken = at
 	t.RefreshToken = rt
 	t.Expiration = int64(claims["exp"].(float64))
+	t.UserID = claims["sub"].(string)
 
 	return nil
 }

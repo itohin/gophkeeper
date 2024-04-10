@@ -45,6 +45,7 @@ func NewServer(auth Auth, secrets Secrets, log logger.Logger, jwtManager JWTMana
 func (s *Server) Start() error {
 	listen, err := net.Listen("tcp", ":3200")
 	if err != nil {
+		s.log.Errorf("server error: %v", err)
 		return err
 	}
 	s.log.Info("server started")

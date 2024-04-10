@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/itohin/gophkeeper/internal/server/dto"
 	"github.com/itohin/gophkeeper/internal/server/entities"
 	"github.com/itohin/gophkeeper/pkg/logger"
 	pb "github.com/itohin/gophkeeper/proto"
@@ -13,7 +14,8 @@ import (
 
 type Secrets interface {
 	Save(ctx context.Context, secret *entities.Secret) (*entities.Secret, error)
-	GetUserSecrets(ctx context.Context, userID string) ([]entities.SecretDTO, error)
+	GetUserSecrets(ctx context.Context, userID string) ([]dto.SecretDTO, error)
+	GetUserSecret(ctx context.Context, userID, secretID string) (dto.SecretDTO, error)
 }
 
 type SecretsServer struct {
@@ -45,6 +47,24 @@ func (s *SecretsServer) Search(ctx context.Context, in *pb.SearchRequest) (*pb.S
 	}, nil
 }
 
+func (s *SecretsServer) Get(ctx context.Context, in *pb.GetRequest) (*pb.GetResponse, error) {
+	sDTO, err := s.secrets.GetUserSecret(ctx, ctx.Value("user_id").(string), in.Id)
+	if err != nil {
+		s.log.Error(err)
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	secret, err := s.buildSecret(&sDTO)
+	if err != nil {
+		s.log.Error(err)
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.GetResponse{
+		Secret: secret,
+	}, nil
+}
+
 func (s *SecretsServer) Create(ctx context.Context, in *pb.CreateRequest) (*pb.CreateResponse, error) {
 	data, err := s.getData(in.Secret)
 	if err != nil {
@@ -70,7 +90,7 @@ func (s *SecretsServer) Create(ctx context.Context, in *pb.CreateRequest) (*pb.C
 	}, nil
 }
 
-func (s *SecretsServer) buildSecret(in *entities.SecretDTO) (*pb.Secret, error) {
+func (s *SecretsServer) buildSecret(in *dto.SecretDTO) (*pb.Secret, error) {
 	var t entities.Text
 	var p entities.Password
 	secret := pb.Secret{

@@ -7,6 +7,20 @@ import (
 	pb "github.com/itohin/gophkeeper/proto"
 )
 
+func (c *Client) GetSecret(ctx context.Context, id string) (*entities.Secret, error) {
+	s, err := c.secrets.Get(ctx, &pb.GetRequest{
+		Id: id,
+	})
+	if err != nil {
+		return nil, handleError(err)
+	}
+	secret, err := c.buildSecret(s.Secret)
+	if err != nil {
+		return nil, handleError(err)
+	}
+	return secret, nil
+}
+
 func (c *Client) SearchSecrets(ctx context.Context) (map[string]*entities.Secret, error) {
 	s, err := c.secrets.Search(ctx, &pb.SearchRequest{})
 	if err != nil {

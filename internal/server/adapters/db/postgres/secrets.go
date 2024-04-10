@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"github.com/itohin/gophkeeper/internal/server/dto"
 	"github.com/itohin/gophkeeper/internal/server/entities"
 	"github.com/itohin/gophkeeper/pkg/database"
 	"time"
@@ -16,8 +17,8 @@ func NewSecretsRepository(db *database.PgxPoolDB) *SecretsRepository {
 	return &SecretsRepository{db: db}
 }
 
-func (r *SecretsRepository) Get(ctx context.Context, userID string) ([]entities.SecretDTO, error) {
-	secrets := make([]entities.SecretDTO, 0)
+func (r *SecretsRepository) GetUserSecrets(ctx context.Context, userID string) ([]dto.SecretDTO, error) {
+	secrets := make([]dto.SecretDTO, 0)
 	query := `SELECT id, user_id, type, name, data, notes FROM secrets where user_id = $1`
 	rows, err := r.db.Pool.Query(ctx, query, userID)
 	if err != nil {
@@ -25,7 +26,7 @@ func (r *SecretsRepository) Get(ctx context.Context, userID string) ([]entities.
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var secretItem entities.SecretDTO
+		var secretItem dto.SecretDTO
 		err = rows.Scan(&secretItem.ID, &secretItem.UserID, &secretItem.SecretType, &secretItem.Name, &secretItem.Data, &secretItem.Notes)
 		if err != nil {
 			return nil, err
@@ -37,6 +38,16 @@ func (r *SecretsRepository) Get(ctx context.Context, userID string) ([]entities.
 		return nil, err
 	}
 	return secrets, nil
+}
+
+func (r *SecretsRepository) GetUserSecret(ctx context.Context, userID, secretID string) (dto.SecretDTO, error) {
+	var s dto.SecretDTO
+	query := `SELECT id, user_id, type, name, data, notes FROM secrets where id = $1 and user_id = $2`
+	err := r.db.Pool.QueryRow(ctx, query, secretID, userID).Scan(&s.ID, &s.UserID, &s.SecretType, &s.Name, &s.Data, &s.Notes)
+	if err != nil {
+		return s, err
+	}
+	return s, nil
 }
 
 func (r *SecretsRepository) Save(ctx context.Context, s entities.Secret) error {

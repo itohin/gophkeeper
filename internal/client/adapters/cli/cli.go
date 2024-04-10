@@ -64,6 +64,7 @@ type Cli struct {
 	auth       Auth
 	secrets    Secrets
 	shutdownCh chan struct{}
+	errorCh    chan error
 }
 
 func NewCli(
@@ -72,6 +73,7 @@ func NewCli(
 	auth Auth,
 	secrets Secrets,
 	shutdownCh chan struct{},
+	errorCh chan error,
 ) *Cli {
 	cli := &Cli{
 		log:        logger,
@@ -79,6 +81,7 @@ func NewCli(
 		auth:       auth,
 		secrets:    secrets,
 		shutdownCh: shutdownCh,
+		errorCh:    errorCh,
 	}
 
 	cli.router = router.NewRouter(
@@ -111,12 +114,15 @@ func (c *Cli) Start() error {
 		select {
 		case <-c.shutdownCh:
 			return nil
+		case err := <-c.errorCh:
+			fmt.Println("\n\n", err.Error())
+			action, err = c.Call(authMenu)
 		default:
 			action, err = c.Call(action)
 			if err != nil {
 				if errors.As(err, &domainError) {
 					fmt.Println("\n\n", err.Error())
-					action = authMenu
+					action, err = c.Call(authMenu)
 				} else {
 					return err
 				}
@@ -129,7 +135,6 @@ func (c *Cli) Call(action string) (result string, err error) {
 	actionData := strings.Split(action, "/")
 	cmd, err := c.router.GetCommand(actionData[0])
 	params := actionData[1:]
-	fmt.Println(actionData[0], params)
 	if err != nil {
 		return "", err
 	}
@@ -144,6 +149,9 @@ func (c *Cli) Call(action string) (result string, err error) {
 	}
 	var res []reflect.Value
 	res = f.Call(in)
+	if !res[1].IsNil() {
+		return "", res[1].Interface().(error)
+	}
 	result = res[0].String()
 	return
 }

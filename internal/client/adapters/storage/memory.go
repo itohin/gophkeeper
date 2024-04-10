@@ -27,6 +27,15 @@ func (m *MemoryStorage) SaveSecrets(ctx context.Context, secrets map[string]*ent
 	return nil
 }
 
+func (m *MemoryStorage) SaveSecret(ctx context.Context, secret *entities.Secret) error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+
+	m.secrets[secret.ID] = secret
+
+	return nil
+}
+
 func (m *MemoryStorage) GetSecrets(ctx context.Context) (map[string]*entities.Secret, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()

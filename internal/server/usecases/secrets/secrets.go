@@ -3,12 +3,14 @@ package secrets
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/itohin/gophkeeper/internal/server/dto"
 	"github.com/itohin/gophkeeper/internal/server/entities"
 )
 
 type SecretsStorage interface {
 	Save(ctx context.Context, secret entities.Secret) error
-	Get(ctx context.Context, userID string) ([]entities.SecretDTO, error)
+	GetUserSecrets(ctx context.Context, userID string) ([]dto.SecretDTO, error)
+	GetUserSecret(ctx context.Context, userID, secretID string) (dto.SecretDTO, error)
 }
 type UUIDGenerator interface {
 	Generate() ([16]byte, error)
@@ -26,8 +28,12 @@ func NewSecretsUseCase(uuid UUIDGenerator, repo SecretsStorage) *SecretsUseCase 
 	}
 }
 
-func (s *SecretsUseCase) GetUserSecrets(ctx context.Context, userID string) ([]entities.SecretDTO, error) {
-	return s.repo.Get(ctx, userID)
+func (s *SecretsUseCase) GetUserSecrets(ctx context.Context, userID string) ([]dto.SecretDTO, error) {
+	return s.repo.GetUserSecrets(ctx, userID)
+}
+
+func (s *SecretsUseCase) GetUserSecret(ctx context.Context, userID, secretID string) (dto.SecretDTO, error) {
+	return s.repo.GetUserSecret(ctx, userID, secretID)
 }
 
 func (s *SecretsUseCase) Save(ctx context.Context, secret *entities.Secret) (*entities.Secret, error) {
