@@ -38,7 +38,8 @@ func main() {
 		l.Fatal(err)
 	}
 	token := entities.NewToken(jwtGen)
-	client, err := grpc.NewClient(fingerPrint, token, shutdownCh)
+	hydrator := storage.NewSecretsHydrator()
+	client, err := grpc.NewClient(fingerPrint, token, shutdownCh, hydrator)
 	if err != nil {
 		l.Fatal(err)
 	}

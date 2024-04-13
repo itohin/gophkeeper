@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/itohin/gophkeeper/internal/server/dto"
 	"github.com/itohin/gophkeeper/internal/server/entities"
+	"github.com/itohin/gophkeeper/pkg/events"
 	"github.com/itohin/gophkeeper/pkg/logger"
 	pb "github.com/itohin/gophkeeper/proto"
 	"google.golang.org/grpc/codes"
@@ -14,8 +14,8 @@ import (
 
 type Secrets interface {
 	Save(ctx context.Context, secret *entities.Secret) (*entities.Secret, error)
-	GetUserSecrets(ctx context.Context, userID string) ([]dto.SecretDTO, error)
-	GetUserSecret(ctx context.Context, userID, secretID string) (dto.SecretDTO, error)
+	GetUserSecrets(ctx context.Context, userID string) ([]events.SecretDTO, error)
+	GetUserSecret(ctx context.Context, userID, secretID string) (events.SecretDTO, error)
 }
 
 type SecretsServer struct {
@@ -90,7 +90,7 @@ func (s *SecretsServer) Create(ctx context.Context, in *pb.CreateRequest) (*pb.C
 	}, nil
 }
 
-func (s *SecretsServer) buildSecret(in *dto.SecretDTO) (*pb.Secret, error) {
+func (s *SecretsServer) buildSecret(in *events.SecretDTO) (*pb.Secret, error) {
 	var t entities.Text
 	var p entities.Password
 	secret := pb.Secret{

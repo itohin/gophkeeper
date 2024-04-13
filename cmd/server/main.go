@@ -5,10 +5,10 @@ import (
 	"github.com/itohin/gophkeeper/internal/server/adapters/db/postgres"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc"
 	"github.com/itohin/gophkeeper/internal/server/adapters/websocket"
-	"github.com/itohin/gophkeeper/internal/server/events"
 	"github.com/itohin/gophkeeper/internal/server/usecases/auth"
 	"github.com/itohin/gophkeeper/internal/server/usecases/secrets"
 	"github.com/itohin/gophkeeper/pkg/database"
+	"github.com/itohin/gophkeeper/pkg/events"
 	"github.com/itohin/gophkeeper/pkg/hash/password"
 	"github.com/itohin/gophkeeper/pkg/jwt"
 	"github.com/itohin/gophkeeper/pkg/logger"
@@ -63,13 +63,11 @@ func main() {
 	go ws.Run()
 
 	go func() {
-		log.Println("start ticker")
-		ticker := time.NewTicker(time.Second * 5)
+		ticker := time.NewTicker(time.Second * 10)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				log.Println("tick")
 				sDTO, err := secretsRepo.GetUserSecret(context.Background(), "5055231a-ce9c-4f25-9a6b-e2522e70ebd6", "d5439c04-0c11-4d3c-a524-457c41e61f8a")
 				if err != nil {
 					log.Println("get secret error: ", err)

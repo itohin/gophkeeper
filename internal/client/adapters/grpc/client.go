@@ -3,6 +3,7 @@ package grpc
 import (
 	"fmt"
 	ji "github.com/itohin/gophkeeper/internal/client/adapters/grpc/interceptors/jwt"
+	"github.com/itohin/gophkeeper/internal/client/adapters/storage"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/pkg/errors"
 	pb "github.com/itohin/gophkeeper/proto"
@@ -13,15 +14,21 @@ import (
 )
 
 type Client struct {
-	conn        *grpc.ClientConn
-	auth        pb.AuthClient
-	secrets     pb.SecretsClient
-	shutdownCh  chan struct{}
-	token       *entities.Token
-	fingerPrint string
+	conn            *grpc.ClientConn
+	auth            pb.AuthClient
+	secrets         pb.SecretsClient
+	shutdownCh      chan struct{}
+	token           *entities.Token
+	fingerPrint     string
+	secretsHydrator *storage.SecretsHydrator
 }
 
-func NewClient(fingerPrint string, token *entities.Token, shutdownCh chan struct{}) (*Client, error) {
+func NewClient(
+	fingerPrint string,
+	token *entities.Token,
+	shutdownCh chan struct{},
+	secretsHydrator *storage.SecretsHydrator,
+) (*Client, error) {
 	conn, err := grpc.Dial(
 		":3200",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -35,12 +42,13 @@ func NewClient(fingerPrint string, token *entities.Token, shutdownCh chan struct
 	auth := pb.NewAuthClient(conn)
 	token.SetClient(auth)
 	return &Client{
-		conn:        conn,
-		auth:        auth,
-		secrets:     pb.NewSecretsClient(conn),
-		shutdownCh:  shutdownCh,
-		token:       token,
-		fingerPrint: fingerPrint,
+		conn:            conn,
+		auth:            auth,
+		secrets:         pb.NewSecretsClient(conn),
+		shutdownCh:      shutdownCh,
+		token:           token,
+		fingerPrint:     fingerPrint,
+		secretsHydrator: secretsHydrator,
 	}, nil
 }
 

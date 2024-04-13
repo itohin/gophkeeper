@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
-	"github.com/itohin/gophkeeper/internal/server/events"
+	"github.com/itohin/gophkeeper/pkg/events"
 	"io"
 	"log"
 	"sync"

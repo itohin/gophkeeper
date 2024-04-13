@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/gobwas/ws"
-	"github.com/itohin/gophkeeper/internal/server/events"
+	"github.com/itohin/gophkeeper/pkg/events"
 	"log"
 	"net/http"
 )
