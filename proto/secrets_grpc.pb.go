@@ -25,6 +25,7 @@ type SecretsClient interface {
 	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error)
 	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
+	CreateStream(ctx context.Context, in *StreamConnect, opts ...grpc.CallOption) (Secrets_CreateStreamClient, error)
 }
 
 type secretsClient struct {
@@ -62,6 +63,38 @@ func (c *secretsClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.Ca
 	return out, nil
 }
 
+func (c *secretsClient) CreateStream(ctx context.Context, in *StreamConnect, opts ...grpc.CallOption) (Secrets_CreateStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Secrets_ServiceDesc.Streams[0], "/gophkeeper.Secrets/CreateStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &secretsCreateStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Secrets_CreateStreamClient interface {
+	Recv() (*SecretEvent, error)
+	grpc.ClientStream
+}
+
+type secretsCreateStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *secretsCreateStreamClient) Recv() (*SecretEvent, error) {
+	m := new(SecretEvent)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // SecretsServer is the server API for Secrets service.
 // All implementations must embed UnimplementedSecretsServer
 // for forward compatibility
@@ -69,6 +102,7 @@ type SecretsServer interface {
 	Create(context.Context, *CreateRequest) (*CreateResponse, error)
 	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	Get(context.Context, *GetRequest) (*GetResponse, error)
+	CreateStream(*StreamConnect, Secrets_CreateStreamServer) error
 	mustEmbedUnimplementedSecretsServer()
 }
 
@@ -84,6 +118,9 @@ func (UnimplementedSecretsServer) Search(context.Context, *SearchRequest) (*Sear
 }
 func (UnimplementedSecretsServer) Get(context.Context, *GetRequest) (*GetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedSecretsServer) CreateStream(*StreamConnect, Secrets_CreateStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method CreateStream not implemented")
 }
 func (UnimplementedSecretsServer) mustEmbedUnimplementedSecretsServer() {}
 
@@ -152,6 +189,27 @@ func _Secrets_Get_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Secrets_CreateStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamConnect)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SecretsServer).CreateStream(m, &secretsCreateStreamServer{stream})
+}
+
+type Secrets_CreateStreamServer interface {
+	Send(*SecretEvent) error
+	grpc.ServerStream
+}
+
+type secretsCreateStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *secretsCreateStreamServer) Send(m *SecretEvent) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Secrets_ServiceDesc is the grpc.ServiceDesc for Secrets service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -172,6 +230,12 @@ var Secrets_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Secrets_Get_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "CreateStream",
+			Handler:       _Secrets_CreateStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "proto/secrets.proto",
 }

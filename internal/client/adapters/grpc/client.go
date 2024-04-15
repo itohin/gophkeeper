@@ -35,6 +35,9 @@ func NewClient(
 		grpc.WithChainUnaryInterceptor(
 			ji.UnaryClientInterceptor(token, fingerPrint),
 		),
+		grpc.WithChainStreamInterceptor(
+			ji.StreamClientInterceptor(token, fingerPrint),
+		),
 	)
 	if err != nil {
 		return nil, err

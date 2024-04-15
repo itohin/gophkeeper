@@ -9,7 +9,6 @@ import (
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/grpc"
 	"github.com/itohin/gophkeeper/internal/client/adapters/storage"
-	"github.com/itohin/gophkeeper/internal/client/adapters/websocket"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/internal/client/usecases/auth"
 	"github.com/itohin/gophkeeper/internal/client/usecases/secrets"
@@ -45,12 +44,12 @@ func main() {
 	}
 	defer client.Close()
 
-	wsPort := "7777"
-	ws := websocket.NewWSListener(
-		fmt.Sprintf("wss://:%s/connect", wsPort),
-		fingerPrint,
-		shutdownCh,
-	)
+	//wsPort := "7777"
+	//ws := websocket.NewWSListener(
+	//	fmt.Sprintf("wss://:%s/connect", wsPort),
+	//	fingerPrint,
+	//	shutdownCh,
+	//)
 
 	memoryStorage := storage.NewMemoryStorage()
 	authUseCase := auth.NewAuth(client, authCh)
@@ -59,15 +58,23 @@ func main() {
 	go func() {
 		for {
 			select {
-			case userID := <-authCh:
-				ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*80)
-				defer cancel()
+			case <-authCh:
+				//case userID := <-authCh:
+				//ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*80)
+				//defer cancel()
+				//go func() {
+				//	err := ws.Listen(ctx, userID)
+				//	if err != nil {
+				//		errorCh <- fmt.Errorf("ws listen error: %s", err)
+				//	}
+				//}()
 				go func() {
-					err := ws.Listen(ctx, userID)
+					err := client.CreateStream(context.Background())
 					if err != nil {
-						errorCh <- fmt.Errorf("ws listen error: %s", err)
+						log.Printf("create stream error: %v", err)
 					}
 				}()
+
 				err = secretsUseCase.SyncSecrets(context.Background())
 				if err != nil {
 					errorCh <- fmt.Errorf("не удалось синхронизировать данные: %v", err)

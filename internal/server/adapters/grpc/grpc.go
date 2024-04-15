@@ -5,11 +5,13 @@ import (
 	"errors"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc/interceptors/jwt"
 	errors2 "github.com/itohin/gophkeeper/pkg/errors"
+	"github.com/itohin/gophkeeper/pkg/events"
 	"github.com/itohin/gophkeeper/pkg/logger"
 	pb "github.com/itohin/gophkeeper/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"net"
+	"sync"
 )
 
 type JWTManager interface {
@@ -21,20 +23,37 @@ type Server struct {
 	log logger.Logger
 }
 
-func NewServer(auth Auth, secrets Secrets, log logger.Logger, jwtManager JWTManager) *Server {
+func NewServer(
+	auth Auth,
+	secrets Secrets,
+	log logger.Logger,
+	jwtManager JWTManager,
+	eventCh chan *events.SecretEvent,
+) *Server {
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			jwt.UnaryServerInterceptor(jwtManager.GetClaims),
+		),
+		grpc.ChainStreamInterceptor(
+			jwt.StreamServerInterceptor(jwtManager.GetClaims),
 		),
 	)
 	pb.RegisterAuthServer(srv, &AuthServer{
 		auth: auth,
 		log:  log,
 	})
-	pb.RegisterSecretsServer(srv, &SecretsServer{
-		secrets: secrets,
-		log:     log,
-	})
+
+	secretsSrv := &SecretsServer{
+		secrets:       secrets,
+		log:           log,
+		eventCh:       eventCh,
+		streamClients: make(clientsMap),
+		mx:            &sync.RWMutex{},
+	}
+
+	pb.RegisterSecretsServer(srv, secretsSrv)
+
+	go secretsSrv.Broadcast()
 
 	return &Server{
 		srv: srv,

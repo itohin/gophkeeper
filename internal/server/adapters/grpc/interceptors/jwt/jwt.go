@@ -38,6 +38,28 @@ func UnaryServerInterceptor(f func(tokenString string) (map[string]interface{}, 
 	}
 }
 
+func StreamServerInterceptor(f func(tokenString string) (map[string]interface{}, error)) grpc.StreamServerInterceptor {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+
+		md, ok := metadata.FromIncomingContext(ss.Context())
+		if !ok {
+			return status.Error(codes.PermissionDenied, "authorization denied")
+		}
+		jwtString, err := getJWTString(md)
+		if err != nil {
+			return status.Error(codes.PermissionDenied, "authorization denied")
+		}
+
+		claims, err := f(jwtString)
+
+		if int64(claims["exp"].(float64)) < time.Now().Unix() {
+			return status.Error(codes.PermissionDenied, "authorization denied")
+		}
+
+		return handler(srv, ss)
+	}
+}
+
 func getJWTString(md metadata.MD) (string, error) {
 	values := md.Get("Authorization")
 	if len(values[0]) < 1 {

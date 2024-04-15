@@ -28,6 +28,25 @@ func UnaryClientInterceptor(token *entities.Token, fingerPrint string) grpc.Unar
 	}
 }
 
+func StreamClientInterceptor(token *entities.Token, fingerPrint string) grpc.StreamClientInterceptor {
+	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+
+		if needToSkip(method) {
+			return streamer(ctx, desc, cc, method, opts...)
+		}
+
+		if token.IsExpired() {
+			err := token.Refresh(ctx, fingerPrint)
+			if err != nil {
+				return streamer(ctx, desc, cc, method, opts...)
+			}
+		}
+
+		authCtx := metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+token.AccessToken)
+		return streamer(authCtx, desc, cc, method, opts...)
+	}
+}
+
 var authRoutes = map[string]struct{}{
 	"/gophkeeper.Auth/Refresh":  {},
 	"/gophkeeper.Auth/Login":    {},

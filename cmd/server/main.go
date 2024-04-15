@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/itohin/gophkeeper/internal/server/adapters/db/postgres"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc"
-	"github.com/itohin/gophkeeper/internal/server/adapters/websocket"
 	"github.com/itohin/gophkeeper/internal/server/usecases/auth"
 	"github.com/itohin/gophkeeper/internal/server/usecases/secrets"
 	"github.com/itohin/gophkeeper/pkg/database"
@@ -42,12 +41,11 @@ func main() {
 
 	secretEventsCh := make(chan *events.SecretEvent, 10)
 	secretsRepo := postgres.NewSecretsRepository(db)
-	srv, err := setupServer(db, l, jwtManager, secretsRepo)
+	srv, err := setupServer(db, l, jwtManager, secretsRepo, secretEventsCh)
 	if err != nil {
 		l.Fatal(err)
 	}
 
-	ws := websocket.NewWSNotifier(":7777", "ca.crt", "ca.key", secretEventsCh)
 	idleConnsClosed := make(chan struct{})
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -57,10 +55,8 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.Stop(ctx)
-		ws.Stop(ctx)
 		close(idleConnsClosed)
 	}()
-	go ws.Run()
 
 	go func() {
 		ticker := time.NewTicker(time.Second * 10)
@@ -95,7 +91,7 @@ func main() {
 
 }
 
-func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, secretsRepo *postgres.SecretsRepository) (*grpc.Server, error) {
+func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, secretsRepo *postgres.SecretsRepository, eventCh chan *events.SecretEvent) (*grpc.Server, error) {
 	uuidGen := uuid.NewGoogleUUIDGenerator()
 	//secretsRepo := postgres.NewSecretsRepository(db)
 
@@ -104,7 +100,7 @@ func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, 
 	if err != nil {
 		return nil, err
 	}
-	return grpc.NewServer(authUseCase, secretsUseCase, l, jm), nil
+	return grpc.NewServer(authUseCase, secretsUseCase, l, jm, eventCh), nil
 }
 
 func setupAuth(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, uuidGen *uuid.GoogleUUIDGenerator) (*auth.AuthUseCase, error) {

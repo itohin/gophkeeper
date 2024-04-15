@@ -10,6 +10,8 @@ import (
 	pb "github.com/itohin/gophkeeper/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"log"
+	"sync"
 )
 
 type Secrets interface {
@@ -18,10 +20,22 @@ type Secrets interface {
 	GetUserSecret(ctx context.Context, userID, secretID string) (events.SecretDTO, error)
 }
 
+type StreamConnection struct {
+	userID   string
+	deviceID string
+	stream   pb.Secrets_CreateStreamServer
+	error    chan error
+}
+type devicesMap map[string]*StreamConnection
+type clientsMap map[string]devicesMap
+
 type SecretsServer struct {
 	pb.UnimplementedSecretsServer
-	secrets Secrets
-	log     logger.Logger
+	secrets       Secrets
+	log           logger.Logger
+	eventCh       chan *events.SecretEvent
+	streamClients clientsMap
+	mx            *sync.RWMutex
 }
 
 func (s *SecretsServer) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchResponse, error) {
@@ -88,6 +102,100 @@ func (s *SecretsServer) Create(ctx context.Context, in *pb.CreateRequest) (*pb.C
 	return &pb.CreateResponse{
 		Id: savedSecret.ID,
 	}, nil
+}
+
+func (s *SecretsServer) CreateStream(pConn *pb.StreamConnect, stream pb.Secrets_CreateStreamServer) error {
+	log.Println("stream connect", pConn)
+
+	ch := make(chan error)
+
+	err := s.addClient(&StreamConnection{
+		userID:   pConn.UserId,
+		deviceID: pConn.FingerPrint,
+		stream:   stream,
+		error:    make(chan error),
+	})
+	if err != nil {
+		return err
+	}
+
+	return <-ch
+}
+
+func (s *SecretsServer) Broadcast() {
+	for {
+		select {
+		case event := <-s.eventCh:
+			secret, err := s.buildSecret(&event.Secret)
+			if err != nil {
+				log.Printf("failed to build message: %v", err)
+			}
+			message := &pb.SecretEvent{
+				Type:   pb.SecretEventType_EVENT_CREATED,
+				Secret: secret,
+			}
+
+			devices := s.getClientDevices(event.Secret.UserID)
+			log.Printf("devices: %v", devices)
+			if devices != nil {
+				for _, conn := range devices {
+					err := conn.stream.Send(message)
+					log.Printf("sendin message: %v\n", message)
+
+					if err != nil {
+						log.Printf("error with stream: %v - error: %v/n", conn.stream, err)
+						conn.error <- err
+					}
+				}
+			}
+		default:
+		}
+	}
+}
+
+func (s *SecretsServer) getClientDevices(clientID string) devicesMap {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	devices, ok := s.streamClients[clientID]
+	if !ok {
+		return nil
+	}
+
+	return devices
+}
+
+func (s *SecretsServer) addClient(conn *StreamConnection) error {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	devices, ok := s.streamClients[conn.userID]
+	if !ok {
+		devices = make(devicesMap)
+	}
+	if _, ok := devices[conn.deviceID]; ok {
+		return fmt.Errorf("client id %s, deviceID %s already connected", conn.userID, conn.deviceID)
+	}
+	devices[conn.deviceID] = conn
+	s.streamClients[conn.userID] = devices
+	return nil
+}
+
+func (s *SecretsServer) removeClient(clientID, deviceID string) error {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+
+	devices, ok := s.streamClients[clientID]
+	if !ok {
+		return fmt.Errorf("client id %s, deviceID %s not found", clientID, deviceID)
+	}
+
+	delete(devices, deviceID)
+	if len(s.streamClients[clientID]) == 0 {
+		delete(s.streamClients, clientID)
+	}
+
+	return nil
 }
 
 func (s *SecretsServer) buildSecret(in *events.SecretDTO) (*pb.Secret, error) {

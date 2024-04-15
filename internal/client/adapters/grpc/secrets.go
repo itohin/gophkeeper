@@ -2,8 +2,11 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	pb "github.com/itohin/gophkeeper/proto"
+	"io"
+	"log"
 )
 
 func (c *Client) GetSecret(ctx context.Context, id string) (*entities.Secret, error) {
@@ -71,4 +74,29 @@ func (c *Client) CreatePassword(ctx context.Context, secret *entities.Secret, pa
 		return handleError(err)
 	}
 	return nil
+}
+
+func (c *Client) CreateStream(ctx context.Context) error {
+	stream, err := c.secrets.CreateStream(ctx, &pb.StreamConnect{
+		FingerPrint: c.fingerPrint,
+		UserId:      c.token.UserID,
+	})
+	if err != nil {
+		return handleError(err)
+	}
+
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			//break
+			log.Printf("eof")
+			continue
+		}
+		if err != nil {
+			log.Printf("stream connect error: %v", err)
+			return handleError(err)
+		}
+		fmt.Printf("new msg: %v", resp)
+	}
+	//return nil
 }
