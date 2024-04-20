@@ -15,7 +15,6 @@ import (
 	"github.com/itohin/gophkeeper/pkg/mailer"
 	"github.com/itohin/gophkeeper/pkg/otp"
 	"github.com/itohin/gophkeeper/pkg/uuid"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -41,13 +40,13 @@ func main() {
 	}
 
 	secretEventsCh := make(chan *events.SecretEvent, 10)
-	secretsRepo := postgres.NewSecretsRepository(db)
-	srv, err := setupServer(db, l, jwtManager, secretsRepo)
+	ws := websocket.NewWSNotifier(":7777", "ca.crt", "ca.key", secretEventsCh)
+
+	srv, err := setupServer(db, l, jwtManager, secretEventsCh)
 	if err != nil {
 		l.Fatal(err)
 	}
 
-	ws := websocket.NewWSNotifier(":7777", "ca.crt", "ca.key", secretEventsCh)
 	idleConnsClosed := make(chan struct{})
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -62,26 +61,6 @@ func main() {
 	}()
 	go ws.Run()
 
-	go func() {
-		ticker := time.NewTicker(time.Second * 10)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				sDTO, err := secretsRepo.GetUserSecret(context.Background(), "5055231a-ce9c-4f25-9a6b-e2522e70ebd6", "d5439c04-0c11-4d3c-a524-457c41e61f8a")
-				if err != nil {
-					log.Println("get secret error: ", err)
-				}
-				ev := &events.SecretEvent{
-					EventType: events.TypeCreated,
-					Secret:    sDTO,
-				}
-
-				secretEventsCh <- ev
-			}
-		}
-	}()
-
 	err = srv.Start()
 	if err != nil {
 		l.Fatal(err)
@@ -95,12 +74,12 @@ func main() {
 
 }
 
-func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, secretsRepo *postgres.SecretsRepository) (*grpc.Server, error) {
+func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, eventCh chan *events.SecretEvent) (*grpc.Server, error) {
 	uuidGen := uuid.NewGoogleUUIDGenerator()
-	//secretsRepo := postgres.NewSecretsRepository(db)
+	secretsRepo := postgres.NewSecretsRepository(db)
 
 	authUseCase, err := setupAuth(db, l, jm, uuidGen)
-	secretsUseCase := secrets.NewSecretsUseCase(uuidGen, secretsRepo)
+	secretsUseCase := secrets.NewSecretsUseCase(uuidGen, secretsRepo, eventCh)
 	if err != nil {
 		return nil, err
 	}

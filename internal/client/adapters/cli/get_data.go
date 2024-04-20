@@ -47,7 +47,7 @@ func (c *Cli) showData(id string) (string, error) {
 }
 
 func (c *Cli) showPassword(secret *entities.Secret) (string, error) {
-	data := secret.Data.(entities.Password)
+	data := secret.Data.(*entities.Password)
 	fmt.Println("Название: ", secret.Name)
 	fmt.Println("Логин: ", data.Login)
 	fmt.Println("Пароль: ", data.Password)
@@ -55,6 +55,10 @@ func (c *Cli) showPassword(secret *entities.Secret) (string, error) {
 	return c.prompt.PromptGetSelect(
 		prompt.PromptContent{Label: "Выберите действие: "},
 		[]prompt.SelectItem{
+			{
+				Label:  deleteDataLabel,
+				Action: deleteData + "/" + secret.ID,
+			},
 			{
 				Label:  comeBackLabel,
 				Action: getData,
@@ -70,8 +74,20 @@ func (c *Cli) showText(secret *entities.Secret) (string, error) {
 		prompt.PromptContent{Label: "Выберите действие: "},
 		[]prompt.SelectItem{
 			{
+				Label:  deleteDataLabel,
+				Action: deleteData + "/" + secret.ID,
+			},
+			{
 				Label:  comeBackLabel,
 				Action: getData,
 			},
 		})
+}
+
+func (c *Cli) deleteData(id string) (string, error) {
+	err := c.secrets.DeleteSecret(context.Background(), id)
+	if err != nil {
+		return "", err
+	}
+	return dataMenu, nil
 }

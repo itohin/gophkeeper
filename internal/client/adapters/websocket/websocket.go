@@ -7,23 +7,45 @@ import (
 	"fmt"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
+	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/pkg/events"
 	"io"
 	"log"
 	"sync"
 )
 
-type WSListener struct {
-	url         string
-	fingerPrint string
-	shutdownCh  chan struct{}
+type SecretsHolder interface {
+	SaveSecret(ctx context.Context, secret *entities.Secret) error
+	DeleteSecret(ctx context.Context, id string) error
 }
 
-func NewWSListener(url, fingerPrint string, shutdownCh chan struct{}) *WSListener {
+type SecretHydrator interface {
+	FromSecretEvent(event *events.SecretEvent) (*entities.Secret, error)
+}
+
+type WSListener struct {
+	url           string
+	fingerPrint   string
+	shutdownCh    chan struct{}
+	errorCh       chan error
+	secretsHolder SecretsHolder
+	hydrator      SecretHydrator
+}
+
+func NewWSListener(
+	url, fingerPrint string,
+	shutdownCh chan struct{},
+	errorCh chan error,
+	secretsHolder SecretsHolder,
+	hydrator SecretHydrator,
+) *WSListener {
 	return &WSListener{
-		url:         url,
-		fingerPrint: fingerPrint,
-		shutdownCh:  shutdownCh,
+		url:           url,
+		fingerPrint:   fingerPrint,
+		shutdownCh:    shutdownCh,
+		errorCh:       errorCh,
+		secretsHolder: secretsHolder,
+		hydrator:      hydrator,
 	}
 }
 
@@ -68,7 +90,6 @@ func (w *WSListener) receiveMsg(ctx context.Context, wg *sync.WaitGroup, conn io
 		}
 
 		h, r, err := wsutil.NextReader(conn, ws.StateClientSide)
-		log.Println("ws read msg", h, r, err)
 		if err != nil {
 			log.Printf("failed to read a frame: %v", err)
 			continue
@@ -82,17 +103,39 @@ func (w *WSListener) receiveMsg(ctx context.Context, wg *sync.WaitGroup, conn io
 				log.Printf("failed to read a message: %v", err)
 				continue
 			}
-			var s events.SecretEvent
-			err = json.Unmarshal(msg, &s)
+			var event events.SecretEvent
+			err = json.Unmarshal(msg, &event)
 			if err != nil {
 				log.Printf("failed to unmarshal message: %v", err)
 				continue
 			}
-			log.Printf("received message: %v", s)
+			err = w.handleEvent(ctx, event)
+			if err != nil {
+				log.Printf("failed to handle secret: %v", err)
+				w.errorCh <- err
+			}
 		default:
 			log.Printf("unexpected frame with opcode %d", h.OpCode)
 		}
 	}
+}
+
+func (w *WSListener) handleEvent(ctx context.Context, event events.SecretEvent) error {
+	if event.EventType == events.TypeDeleted {
+		err := w.secretsHolder.DeleteSecret(ctx, event.Secret.ID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	secret, err := w.hydrator.FromSecretEvent(&event)
+	if err != nil {
+		return err
+	}
+
+	return w.secretsHolder.SaveSecret(ctx, secret)
 }
 
 func closeConnection(conn io.ReadWriteCloser) error {

@@ -21,10 +21,10 @@ type Auth interface {
 }
 
 type Secrets interface {
-	CreateText(ctx context.Context, secret *entities.Secret, text string) error
-	CreatePassword(ctx context.Context, secret *entities.Secret, password *entities.Password) error
+	CreateSecret(ctx context.Context, secret *entities.Secret) error
 	GetSecrets(ctx context.Context) (map[string]*entities.Secret, error)
 	GetSecret(ctx context.Context, id string) (*entities.Secret, error)
+	DeleteSecret(ctx context.Context, id string) error
 }
 
 const (
@@ -45,12 +45,14 @@ const (
 	dataMenu    = "dataMenu"
 	getData     = "getData"
 	addData     = "addData"
+	deleteData  = "deleteData"
 	addText     = "addText"
 	addPassword = "addPassword"
 	showData    = "showData"
 
 	addDataLabel     = "Сохранить данные"
 	getDataLabel     = "Получить данные"
+	deleteDataLabel  = "Удалить данные"
 	addTextLabel     = "Текстовые данные"
 	addPasswordLabel = "Данные для входа(логин/пароль)"
 
@@ -97,6 +99,7 @@ func NewCli(
 			addText:     cli.addText,
 			addPassword: cli.addPassword,
 			showData:    cli.showData,
+			deleteData:  cli.deleteData,
 		},
 	)
 

@@ -8,7 +8,7 @@ const (
 
 type SecretEvent struct {
 	EventType int
-	Secret    SecretDTO
+	Secret    *SecretDTO
 }
 
 type SecretDTO struct {

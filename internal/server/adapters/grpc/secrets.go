@@ -13,9 +13,10 @@ import (
 )
 
 type Secrets interface {
-	Save(ctx context.Context, secret *entities.Secret) (*entities.Secret, error)
+	Save(ctx context.Context, secret *entities.Secret) (*events.SecretDTO, error)
 	GetUserSecrets(ctx context.Context, userID string) ([]events.SecretDTO, error)
 	GetUserSecret(ctx context.Context, userID, secretID string) (events.SecretDTO, error)
+	DeleteUserSecret(ctx context.Context, secret *entities.Secret) (*events.SecretDTO, error)
 }
 
 type SecretsServer struct {
@@ -88,6 +89,30 @@ func (s *SecretsServer) Create(ctx context.Context, in *pb.CreateRequest) (*pb.C
 	return &pb.CreateResponse{
 		Id: savedSecret.ID,
 	}, nil
+}
+
+func (s *SecretsServer) Delete(ctx context.Context, in *pb.DeleteRequest) (*pb.DeleteResponse, error) {
+	data, err := s.getData(in.Secret)
+	if err != nil {
+		s.log.Error(err)
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	_, err = s.secrets.DeleteUserSecret(
+		ctx,
+		&entities.Secret{
+			ID:         in.Secret.Id,
+			Name:       in.Secret.Name,
+			Notes:      in.Secret.Notes,
+			SecretType: in.Secret.SecretType,
+			Data:       data,
+			UserID:     ctx.Value("user_id").(string),
+		},
+	)
+	if err != nil {
+		s.log.Error(err)
+		return nil, status.Error(getErrorCode(err), err.Error())
+	}
+	return &pb.DeleteResponse{}, err
 }
 
 func (s *SecretsServer) buildSecret(in *events.SecretDTO) (*pb.Secret, error) {

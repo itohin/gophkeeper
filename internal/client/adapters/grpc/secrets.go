@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	pb "github.com/itohin/gophkeeper/proto"
 )
@@ -36,16 +37,13 @@ func (c *Client) SearchSecrets(ctx context.Context) (map[string]*entities.Secret
 	return secrets, nil
 }
 
-func (c *Client) CreateText(ctx context.Context, secret *entities.Secret, text string) error {
-	_, err := c.secrets.Create(ctx, &pb.CreateRequest{
-		Secret: &pb.Secret{
-			Name:       secret.Name,
-			SecretType: secret.SecretType,
-			Notes:      secret.Notes,
-			Data: &pb.Secret_Text{
-				Text: text,
-			},
-		},
+func (c *Client) CreateSecret(ctx context.Context, secret *entities.Secret) error {
+	ps, err := c.secretsHydrator.ToProto(secret)
+	if err != nil {
+		return fmt.Errorf("failed convert secret to proto: %v", err)
+	}
+	_, err = c.secrets.Create(ctx, &pb.CreateRequest{
+		Secret: ps,
 	})
 	if err != nil {
 		return handleError(err)
@@ -53,19 +51,13 @@ func (c *Client) CreateText(ctx context.Context, secret *entities.Secret, text s
 	return nil
 }
 
-func (c *Client) CreatePassword(ctx context.Context, secret *entities.Secret, password *entities.Password) error {
-	_, err := c.secrets.Create(ctx, &pb.CreateRequest{
-		Secret: &pb.Secret{
-			Name:       secret.Name,
-			SecretType: secret.SecretType,
-			Notes:      secret.Notes,
-			Data: &pb.Secret_Password{
-				Password: &pb.Password{
-					Login:    password.Login,
-					Password: password.Password,
-				},
-			},
-		},
+func (c *Client) DeleteSecret(ctx context.Context, secret *entities.Secret) error {
+	ps, err := c.secretsHydrator.ToProto(secret)
+	if err != nil {
+		return fmt.Errorf("failed convert secret to proto: %v", err)
+	}
+	_, err = c.secrets.Delete(ctx, &pb.DeleteRequest{
+		Secret: ps,
 	})
 	if err != nil {
 		return handleError(err)

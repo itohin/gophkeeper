@@ -1,5 +1,9 @@
 package entities
 
+import (
+	"database/sql"
+)
+
 const (
 	TypeText = iota + 1
 	TypePassword
@@ -12,6 +16,7 @@ type Secret struct {
 	Notes      string
 	Data       interface{}
 	UserID     string
+	DeletedAt  sql.NullTime
 }
 
 type Text struct {

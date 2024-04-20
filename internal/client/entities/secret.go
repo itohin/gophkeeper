@@ -21,6 +21,10 @@ type Password struct {
 	Password string
 }
 
+type Text struct {
+	Text string
+}
+
 func (s *Secret) GetLabel() string {
 	switch s.SecretType {
 	case TypeText:

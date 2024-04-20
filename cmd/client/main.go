@@ -45,16 +45,19 @@ func main() {
 	}
 	defer client.Close()
 
+	memoryStorage := storage.NewMemoryStorage()
+	authUseCase := auth.NewAuth(client, authCh)
+	secretsUseCase := secrets.NewSecrets(client, memoryStorage)
+
 	wsPort := "7777"
 	ws := websocket.NewWSListener(
 		fmt.Sprintf("wss://:%s/connect", wsPort),
 		fingerPrint,
 		shutdownCh,
+		errorCh,
+		memoryStorage,
+		hydrator,
 	)
-
-	memoryStorage := storage.NewMemoryStorage()
-	authUseCase := auth.NewAuth(client, authCh)
-	secretsUseCase := secrets.NewSecrets(client, memoryStorage)
 
 	go func() {
 		for {
