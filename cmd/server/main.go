@@ -4,9 +4,11 @@ import (
 	"context"
 	"github.com/itohin/gophkeeper/internal/server/adapters/db/postgres"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc"
+	"github.com/itohin/gophkeeper/internal/server/adapters/websocket"
 	"github.com/itohin/gophkeeper/internal/server/usecases/auth"
 	"github.com/itohin/gophkeeper/internal/server/usecases/secrets"
 	"github.com/itohin/gophkeeper/pkg/database"
+	"github.com/itohin/gophkeeper/pkg/events"
 	"github.com/itohin/gophkeeper/pkg/hash/password"
 	"github.com/itohin/gophkeeper/pkg/jwt"
 	"github.com/itohin/gophkeeper/pkg/logger"
@@ -37,10 +39,14 @@ func main() {
 		l.Fatal(err)
 	}
 
-	srv, err := setupServer(db, l, jwtManager)
+	secretEventsCh := make(chan *events.SecretEvent, 10)
+	ws := websocket.NewWSNotifier(":7777", "ca.crt", "ca.key", secretEventsCh)
+
+	srv, err := setupServer(db, l, jwtManager, secretEventsCh)
 	if err != nil {
 		l.Fatal(err)
 	}
+
 	idleConnsClosed := make(chan struct{})
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -50,13 +56,16 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.Stop(ctx)
+		ws.Stop(ctx)
 		close(idleConnsClosed)
 	}()
+	go ws.Run()
 
 	err = srv.Start()
 	if err != nil {
 		l.Fatal(err)
 	}
+
 	<-idleConnsClosed
 
 	db.Pool.Close()
@@ -65,12 +74,12 @@ func main() {
 
 }
 
-func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager) (*grpc.Server, error) {
+func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, eventCh chan *events.SecretEvent) (*grpc.Server, error) {
 	uuidGen := uuid.NewGoogleUUIDGenerator()
 	secretsRepo := postgres.NewSecretsRepository(db)
 
 	authUseCase, err := setupAuth(db, l, jm, uuidGen)
-	secretsUseCase := secrets.NewSecretsUseCase(uuidGen, secretsRepo)
+	secretsUseCase := secrets.NewSecretsUseCase(uuidGen, secretsRepo, eventCh)
 	if err != nil {
 		return nil, err
 	}

@@ -21,10 +21,10 @@ type Auth interface {
 }
 
 type Secrets interface {
-	CreateText(ctx context.Context, secret *entities.Secret, text string) error
-	CreatePassword(ctx context.Context, secret *entities.Secret, password *entities.Password) error
+	CreateSecret(ctx context.Context, secret *entities.Secret) error
 	GetSecrets(ctx context.Context) (map[string]*entities.Secret, error)
 	GetSecret(ctx context.Context, id string) (*entities.Secret, error)
+	DeleteSecret(ctx context.Context, id string) error
 }
 
 const (
@@ -45,12 +45,14 @@ const (
 	dataMenu    = "dataMenu"
 	getData     = "getData"
 	addData     = "addData"
+	deleteData  = "deleteData"
 	addText     = "addText"
 	addPassword = "addPassword"
 	showData    = "showData"
 
 	addDataLabel     = "Сохранить данные"
 	getDataLabel     = "Получить данные"
+	deleteDataLabel  = "Удалить данные"
 	addTextLabel     = "Текстовые данные"
 	addPasswordLabel = "Данные для входа(логин/пароль)"
 
@@ -64,6 +66,7 @@ type Cli struct {
 	auth       Auth
 	secrets    Secrets
 	shutdownCh chan struct{}
+	errorCh    chan error
 }
 
 func NewCli(
@@ -72,6 +75,7 @@ func NewCli(
 	auth Auth,
 	secrets Secrets,
 	shutdownCh chan struct{},
+	errorCh chan error,
 ) *Cli {
 	cli := &Cli{
 		log:        logger,
@@ -79,6 +83,7 @@ func NewCli(
 		auth:       auth,
 		secrets:    secrets,
 		shutdownCh: shutdownCh,
+		errorCh:    errorCh,
 	}
 
 	cli.router = router.NewRouter(
@@ -94,6 +99,7 @@ func NewCli(
 			addText:     cli.addText,
 			addPassword: cli.addPassword,
 			showData:    cli.showData,
+			deleteData:  cli.deleteData,
 		},
 	)
 
@@ -111,12 +117,15 @@ func (c *Cli) Start() error {
 		select {
 		case <-c.shutdownCh:
 			return nil
+		case err := <-c.errorCh:
+			fmt.Println("\n\n", err.Error())
+			action, err = c.Call(authMenu)
 		default:
 			action, err = c.Call(action)
 			if err != nil {
 				if errors.As(err, &domainError) {
 					fmt.Println("\n\n", err.Error())
-					action = authMenu
+					action, err = c.Call(authMenu)
 				} else {
 					return err
 				}
@@ -129,7 +138,6 @@ func (c *Cli) Call(action string) (result string, err error) {
 	actionData := strings.Split(action, "/")
 	cmd, err := c.router.GetCommand(actionData[0])
 	params := actionData[1:]
-	fmt.Println(actionData[0], params)
 	if err != nil {
 		return "", err
 	}
@@ -144,6 +152,9 @@ func (c *Cli) Call(action string) (result string, err error) {
 	}
 	var res []reflect.Value
 	res = f.Call(in)
+	if !res[1].IsNil() {
+		return "", res[1].Interface().(error)
+	}
 	result = res[0].String()
 	return
 }

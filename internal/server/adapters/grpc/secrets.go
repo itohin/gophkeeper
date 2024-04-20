@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/itohin/gophkeeper/internal/server/entities"
+	"github.com/itohin/gophkeeper/pkg/events"
 	"github.com/itohin/gophkeeper/pkg/logger"
 	pb "github.com/itohin/gophkeeper/proto"
 	"google.golang.org/grpc/codes"
@@ -12,8 +13,10 @@ import (
 )
 
 type Secrets interface {
-	Save(ctx context.Context, secret *entities.Secret) (*entities.Secret, error)
-	GetUserSecrets(ctx context.Context, userID string) ([]entities.SecretDTO, error)
+	Save(ctx context.Context, secret *entities.Secret) (*events.SecretDTO, error)
+	GetUserSecrets(ctx context.Context, userID string) ([]events.SecretDTO, error)
+	GetUserSecret(ctx context.Context, userID, secretID string) (events.SecretDTO, error)
+	DeleteUserSecret(ctx context.Context, secret *entities.Secret) (*events.SecretDTO, error)
 }
 
 type SecretsServer struct {
@@ -45,6 +48,24 @@ func (s *SecretsServer) Search(ctx context.Context, in *pb.SearchRequest) (*pb.S
 	}, nil
 }
 
+func (s *SecretsServer) Get(ctx context.Context, in *pb.GetRequest) (*pb.GetResponse, error) {
+	sDTO, err := s.secrets.GetUserSecret(ctx, ctx.Value("user_id").(string), in.Id)
+	if err != nil {
+		s.log.Error(err)
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	secret, err := s.buildSecret(&sDTO)
+	if err != nil {
+		s.log.Error(err)
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.GetResponse{
+		Secret: secret,
+	}, nil
+}
+
 func (s *SecretsServer) Create(ctx context.Context, in *pb.CreateRequest) (*pb.CreateResponse, error) {
 	data, err := s.getData(in.Secret)
 	if err != nil {
@@ -70,7 +91,31 @@ func (s *SecretsServer) Create(ctx context.Context, in *pb.CreateRequest) (*pb.C
 	}, nil
 }
 
-func (s *SecretsServer) buildSecret(in *entities.SecretDTO) (*pb.Secret, error) {
+func (s *SecretsServer) Delete(ctx context.Context, in *pb.DeleteRequest) (*pb.DeleteResponse, error) {
+	data, err := s.getData(in.Secret)
+	if err != nil {
+		s.log.Error(err)
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	_, err = s.secrets.DeleteUserSecret(
+		ctx,
+		&entities.Secret{
+			ID:         in.Secret.Id,
+			Name:       in.Secret.Name,
+			Notes:      in.Secret.Notes,
+			SecretType: in.Secret.SecretType,
+			Data:       data,
+			UserID:     ctx.Value("user_id").(string),
+		},
+	)
+	if err != nil {
+		s.log.Error(err)
+		return nil, status.Error(getErrorCode(err), err.Error())
+	}
+	return &pb.DeleteResponse{}, err
+}
+
+func (s *SecretsServer) buildSecret(in *events.SecretDTO) (*pb.Secret, error) {
 	var t entities.Text
 	var p entities.Password
 	secret := pb.Secret{

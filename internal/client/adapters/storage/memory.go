@@ -27,6 +27,15 @@ func (m *MemoryStorage) SaveSecrets(ctx context.Context, secrets map[string]*ent
 	return nil
 }
 
+func (m *MemoryStorage) SaveSecret(ctx context.Context, secret *entities.Secret) error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+
+	m.secrets[secret.ID] = secret
+
+	return nil
+}
+
 func (m *MemoryStorage) GetSecrets(ctx context.Context) (map[string]*entities.Secret, error) {
 	m.mx.RLock()
 	defer m.mx.RUnlock()
@@ -40,9 +49,21 @@ func (m *MemoryStorage) GetSecrets(ctx context.Context) (map[string]*entities.Se
 }
 
 func (m *MemoryStorage) GetSecret(ctx context.Context, id string) (*entities.Secret, error) {
+	m.mx.RLock()
+	defer m.mx.RUnlock()
+
 	s, ok := m.secrets[id]
 	if !ok {
 		return nil, fmt.Errorf("secret ID %v not found", id)
 	}
 	return s, nil
+}
+
+func (m *MemoryStorage) DeleteSecret(ctx context.Context, id string) error {
+	m.mx.RLock()
+	defer m.mx.RUnlock()
+
+	delete(m.secrets, id)
+
+	return nil
 }

@@ -23,6 +23,10 @@ func (c *Cli) authMenu() (string, error) {
 			Label:  verifyLabel,
 			Action: verify,
 		},
+		{
+			Label:  logoutLabel,
+			Action: logout,
+		},
 	})
 }
 

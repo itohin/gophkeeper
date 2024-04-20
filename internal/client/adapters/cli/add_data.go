@@ -29,14 +29,14 @@ func (c *Cli) addText() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = c.secrets.CreateText(
+	err = c.secrets.CreateSecret(
 		context.Background(),
 		&entities.Secret{
 			Name:       name,
 			Notes:      notes,
 			SecretType: entities.TypeText,
+			Data:       text,
 		},
-		text,
 	)
 	if err != nil {
 		return "", err
@@ -73,16 +73,16 @@ func (c *Cli) addPassword() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = c.secrets.CreatePassword(
+	err = c.secrets.CreateSecret(
 		context.Background(),
 		&entities.Secret{
 			Name:       name,
 			Notes:      notes,
 			SecretType: entities.TypePassword,
-		},
-		&entities.Password{
-			Login:    login,
-			Password: password,
+			Data: &entities.Password{
+				Login:    login,
+				Password: password,
+			},
 		},
 	)
 	if err != nil {

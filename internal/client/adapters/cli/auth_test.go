@@ -34,6 +34,10 @@ func TestCli_Auth(t *testing.T) {
 			Label:  verifyLabel,
 			Action: verify,
 		},
+		{
+			Label:  logoutLabel,
+			Action: logout,
+		},
 	}
 
 	tests := []struct {

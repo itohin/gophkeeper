@@ -1,7 +1,7 @@
 package router
 
 import (
-	"errors"
+	"fmt"
 )
 
 type Command interface{}
@@ -19,7 +19,7 @@ func NewRouter(commands map[string]Command) *Router {
 func (r *Router) GetCommand(key string) (Command, error) {
 	cmd, ok := r.commands[key]
 	if !ok {
-		return nil, errors.New("unknown command")
+		return nil, fmt.Errorf("unknown command %s", key)
 	}
 	return cmd, nil
 }

@@ -12,16 +12,27 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type Client struct {
-	conn        *grpc.ClientConn
-	auth        pb.AuthClient
-	secrets     pb.SecretsClient
-	shutdownCh  chan struct{}
-	token       *entities.Token
-	fingerPrint string
+type ProtoHydrator interface {
+	FromProto(v *pb.Secret) (*entities.Secret, error)
+	ToProto(s *entities.Secret) (*pb.Secret, error)
 }
 
-func NewClient(fingerPrint string, token *entities.Token, shutdownCh chan struct{}) (*Client, error) {
+type Client struct {
+	conn            *grpc.ClientConn
+	auth            pb.AuthClient
+	secrets         pb.SecretsClient
+	shutdownCh      chan struct{}
+	token           *entities.Token
+	fingerPrint     string
+	secretsHydrator ProtoHydrator
+}
+
+func NewClient(
+	fingerPrint string,
+	token *entities.Token,
+	shutdownCh chan struct{},
+	secretsHydrator ProtoHydrator,
+) (*Client, error) {
 	conn, err := grpc.Dial(
 		":3200",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -35,12 +46,13 @@ func NewClient(fingerPrint string, token *entities.Token, shutdownCh chan struct
 	auth := pb.NewAuthClient(conn)
 	token.SetClient(auth)
 	return &Client{
-		conn:        conn,
-		auth:        auth,
-		secrets:     pb.NewSecretsClient(conn),
-		shutdownCh:  shutdownCh,
-		token:       token,
-		fingerPrint: fingerPrint,
+		conn:            conn,
+		auth:            auth,
+		secrets:         pb.NewSecretsClient(conn),
+		shutdownCh:      shutdownCh,
+		token:           token,
+		fingerPrint:     fingerPrint,
+		secretsHydrator: secretsHydrator,
 	}, nil
 }
 

@@ -4,16 +4,19 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/grpc"
 	"github.com/itohin/gophkeeper/internal/client/adapters/storage"
+	"github.com/itohin/gophkeeper/internal/client/adapters/websocket"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/internal/client/usecases/auth"
 	"github.com/itohin/gophkeeper/internal/client/usecases/secrets"
 	"github.com/itohin/gophkeeper/pkg/jwt"
 	"github.com/itohin/gophkeeper/pkg/logger"
 	"io"
+	"log"
 	"os"
 	"time"
 )
@@ -22,39 +25,63 @@ func main() {
 	l := logger.NewLogger()
 
 	shutdownCh := make(chan struct{})
-	syncCh := make(chan int, 1)
+	authCh := make(chan string, 1)
+	errorCh := make(chan error)
 
 	fingerPrint, err := makeFingerPrint()
 	if err != nil {
 		l.Fatal(err)
 	}
-	//TODO: maybe change to jwtClaimManager
+
 	jwtGen, err := jwt.NewJWTGOManager("secret", 60*time.Second, 360*time.Second)
 	if err != nil {
 		l.Fatal(err)
 	}
 	token := entities.NewToken(jwtGen)
-	client, err := grpc.NewClient(fingerPrint, token, shutdownCh)
+	hydrator := storage.NewSecretsHydrator()
+	client, err := grpc.NewClient(fingerPrint, token, shutdownCh, hydrator)
 	if err != nil {
 		l.Fatal(err)
 	}
 	defer client.Close()
 
 	memoryStorage := storage.NewMemoryStorage()
-	authUseCase := auth.NewAuth(client, syncCh)
+	authUseCase := auth.NewAuth(client, authCh)
 	secretsUseCase := secrets.NewSecrets(client, memoryStorage)
+
+	wsPort := "7777"
+	ws := websocket.NewWSListener(
+		fmt.Sprintf("wss://:%s/connect", wsPort),
+		fingerPrint,
+		shutdownCh,
+		errorCh,
+		memoryStorage,
+		hydrator,
+	)
 
 	go func() {
 		for {
 			select {
-			case <-syncCh:
-				secretsUseCase.SyncSecrets(context.Background())
+			case userID := <-authCh:
+				ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*80)
+				defer cancel()
+				go func() {
+					err := ws.Listen(ctx, userID)
+					if err != nil {
+						errorCh <- fmt.Errorf("ws listen error: %s", err)
+					}
+				}()
+				err = secretsUseCase.SyncSecrets(context.Background())
+				if err != nil {
+					errorCh <- fmt.Errorf("не удалось синхронизировать данные: %v", err)
+					log.Printf("ws listen error: %v", err)
+				}
 			}
 		}
 	}()
 
 	p := prompt.NewPrompt()
-	app := cli.NewCli(l, p, authUseCase, secretsUseCase, shutdownCh)
+	app := cli.NewCli(l, p, authUseCase, secretsUseCase, shutdownCh, errorCh)
 
 	err = app.Start()
 	if err != nil {
