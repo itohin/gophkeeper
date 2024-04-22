@@ -34,8 +34,12 @@ func (h *SecretsHydrator) ToProto(s *entities.Secret) (*pb.Secret, error) {
 		ps.Data = &pb.Secret_Text{
 			Text: d,
 		}
+	case []byte:
+		ps.Data = &pb.Secret_Binary{
+			Binary: d,
+		}
 	default:
-		return nil, fmt.Errorf("unknown secret data type")
+		return nil, fmt.Errorf("unknown secret data type: %v", d)
 	}
 
 	return ps, nil
@@ -56,6 +60,8 @@ func (h *SecretsHydrator) FromProto(v *pb.Secret) (*entities.Secret, error) {
 		}
 	case *pb.Secret_Text:
 		secret.Data = d.Text
+	case *pb.Secret_Binary:
+		secret.Data = d.Binary
 	default:
 		return nil, fmt.Errorf("unknown secret data type")
 	}
@@ -71,6 +77,8 @@ func (h *SecretsHydrator) FromSecretEvent(event *events.SecretEvent) (*entities.
 
 	var t entities.Text
 	var p entities.Password
+	var b entities.Binary
+
 	switch s.SecretType {
 	case entities.TypeText:
 		err := json.Unmarshal(event.Secret.Data, &t)
@@ -87,6 +95,12 @@ func (h *SecretsHydrator) FromSecretEvent(event *events.SecretEvent) (*entities.
 			Login:    p.Login,
 			Password: p.Password,
 		}
+	case entities.TypeBinary:
+		err := json.Unmarshal(event.Secret.Data, &b)
+		if err != nil {
+			return nil, fmt.Errorf("failed to transform secret event: %v", err)
+		}
+		s.Data = b.Binary
 	default:
 		return nil, fmt.Errorf("failed to transform secret event: unknown secret type")
 	}

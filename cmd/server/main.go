@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/itohin/gophkeeper/internal/server/adapters/db/hydrator"
 	"github.com/itohin/gophkeeper/internal/server/adapters/db/postgres"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc"
 	"github.com/itohin/gophkeeper/internal/server/adapters/websocket"
@@ -83,7 +84,8 @@ func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, 
 	if err != nil {
 		return nil, err
 	}
-	return grpc.NewServer(authUseCase, secretsUseCase, l, jm), nil
+
+	return grpc.NewServer(authUseCase, secretsUseCase, l, jm, hydrator.NewSecretsHydrator()), nil
 }
 
 func setupAuth(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, uuidGen *uuid.GoogleUUIDGenerator) (*auth.AuthUseCase, error) {

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/entities"
+	"github.com/itohin/gophkeeper/pkg/validator"
+	"os"
 )
 
 func (c *Cli) getData() (string, error) {
@@ -41,6 +43,8 @@ func (c *Cli) showData(id string) (string, error) {
 		return c.showPassword(s)
 	case entities.TypeText:
 		return c.showText(s)
+	case entities.TypeBinary:
+		return c.showBinary(s)
 	default:
 		return "", fmt.Errorf("unknown secret type %v", s.SecretType)
 	}
@@ -82,6 +86,48 @@ func (c *Cli) showText(secret *entities.Secret) (string, error) {
 				Action: getData,
 			},
 		})
+}
+
+func (c *Cli) showBinary(secret *entities.Secret) (string, error) {
+	fmt.Println("Название: ", secret.Name)
+	fmt.Println("Примечания: ", secret.Notes)
+	action, err := c.prompt.PromptGetSelect(
+		prompt.PromptContent{Label: "Выберите действие: "},
+		[]prompt.SelectItem{
+			{
+				Label:  saveBinaryToDiskLabel,
+				Action: saveBinaryToDisk,
+			},
+			{
+				Label:  deleteDataLabel,
+				Action: deleteData + "/" + secret.ID,
+			},
+			{
+				Label:  comeBackLabel,
+				Action: getData,
+			},
+		})
+	if action != saveBinaryToDisk {
+		return action, err
+	}
+
+	err = c.saveBinary(secret.Data.([]byte))
+	if err != nil {
+		return "", err
+	}
+
+	return getData, nil
+}
+
+func (c *Cli) saveBinary(data []byte) error {
+	path, err := c.prompt.PromptGetInput(
+		prompt.PromptContent{Label: "Введите путь для сохранение(/path/to/file.ext): "},
+		validator.ValidateStringLength(3, 50),
+	)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0755)
 }
 
 func (c *Cli) deleteData(id string) (string, error) {

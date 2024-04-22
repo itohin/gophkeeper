@@ -7,6 +7,8 @@ import (
 const (
 	TypeText = iota + 1
 	TypePassword
+	TypeBinary
+	TypeCard
 )
 
 type Secret struct {
@@ -21,6 +23,10 @@ type Secret struct {
 
 type Text struct {
 	Text string
+}
+
+type Binary struct {
+	Binary []byte
 }
 
 type Password struct {

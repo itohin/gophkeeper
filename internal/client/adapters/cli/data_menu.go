@@ -34,6 +34,10 @@ func (c *Cli) addData() (string, error) {
 				Action: addPassword,
 			},
 			{
+				Label:  addBinaryLabel,
+				Action: addBinary,
+			},
+			{
 				Label:  comeBackLabel,
 				Action: dataMenu,
 			},

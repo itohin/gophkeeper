@@ -4,13 +4,20 @@ import (
 	"context"
 	"errors"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc/interceptors/jwt"
+	"github.com/itohin/gophkeeper/internal/server/entities"
 	errors2 "github.com/itohin/gophkeeper/pkg/errors"
+	"github.com/itohin/gophkeeper/pkg/events"
 	"github.com/itohin/gophkeeper/pkg/logger"
 	pb "github.com/itohin/gophkeeper/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"net"
 )
+
+type SecretHydrator interface {
+	FromProto(in *pb.Secret, userID string) (*entities.Secret, error)
+	ToProto(in *events.SecretDTO) (*pb.Secret, error)
+}
 
 type JWTManager interface {
 	GetClaims(tokenString string) (map[string]interface{}, error)
@@ -21,7 +28,13 @@ type Server struct {
 	log logger.Logger
 }
 
-func NewServer(auth Auth, secrets Secrets, log logger.Logger, jwtManager JWTManager) *Server {
+func NewServer(
+	auth Auth,
+	secrets Secrets,
+	log logger.Logger,
+	jwtManager JWTManager,
+	hydrator SecretHydrator,
+) *Server {
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			jwt.UnaryServerInterceptor(jwtManager.GetClaims),
@@ -32,8 +45,9 @@ func NewServer(auth Auth, secrets Secrets, log logger.Logger, jwtManager JWTMana
 		log:  log,
 	})
 	pb.RegisterSecretsServer(srv, &SecretsServer{
-		secrets: secrets,
-		log:     log,
+		secrets:  secrets,
+		hydrator: hydrator,
+		log:      log,
 	})
 
 	return &Server{

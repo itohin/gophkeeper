@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type ProtoHydrator interface {
+type SecretHydrator interface {
 	FromProto(v *pb.Secret) (*entities.Secret, error)
 	ToProto(s *entities.Secret) (*pb.Secret, error)
 }
@@ -24,14 +24,14 @@ type Client struct {
 	shutdownCh      chan struct{}
 	token           *entities.Token
 	fingerPrint     string
-	secretsHydrator ProtoHydrator
+	secretsHydrator SecretHydrator
 }
 
 func NewClient(
 	fingerPrint string,
 	token *entities.Token,
 	shutdownCh chan struct{},
-	secretsHydrator ProtoHydrator,
+	secretsHydrator SecretHydrator,
 ) (*Client, error) {
 	conn, err := grpc.Dial(
 		":3200",

@@ -42,19 +42,23 @@ const (
 	logoutLabel   = "Завершить работу"
 
 	//data
-	dataMenu    = "dataMenu"
-	getData     = "getData"
-	addData     = "addData"
-	deleteData  = "deleteData"
-	addText     = "addText"
-	addPassword = "addPassword"
-	showData    = "showData"
+	dataMenu         = "dataMenu"
+	getData          = "getData"
+	addData          = "addData"
+	deleteData       = "deleteData"
+	addText          = "addText"
+	addPassword      = "addPassword"
+	addBinary        = "addBinary"
+	saveBinaryToDisk = "saveBinaryToDisk"
+	showData         = "showData"
 
-	addDataLabel     = "Сохранить данные"
-	getDataLabel     = "Получить данные"
-	deleteDataLabel  = "Удалить данные"
-	addTextLabel     = "Текстовые данные"
-	addPasswordLabel = "Данные для входа(логин/пароль)"
+	addDataLabel          = "Сохранить данные"
+	getDataLabel          = "Получить данные"
+	deleteDataLabel       = "Удалить данные"
+	addTextLabel          = "Текстовые данные"
+	addBinaryLabel        = "Бинарные данные"
+	saveBinaryToDiskLabel = "Сохранить на диске"
+	addPasswordLabel      = "Данные для входа(логин/пароль)"
 
 	comeBackLabel = "Вернуться назад"
 )
@@ -98,6 +102,7 @@ func NewCli(
 			addData:     cli.addData,
 			addText:     cli.addText,
 			addPassword: cli.addPassword,
+			addBinary:   cli.addBinary,
 			showData:    cli.showData,
 			deleteData:  cli.deleteData,
 		},

@@ -2,8 +2,6 @@ package grpc
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/itohin/gophkeeper/internal/server/entities"
 	"github.com/itohin/gophkeeper/pkg/events"
 	"github.com/itohin/gophkeeper/pkg/logger"
@@ -21,8 +19,9 @@ type Secrets interface {
 
 type SecretsServer struct {
 	pb.UnimplementedSecretsServer
-	secrets Secrets
-	log     logger.Logger
+	secrets  Secrets
+	hydrator SecretHydrator
+	log      logger.Logger
 }
 
 func (s *SecretsServer) Search(ctx context.Context, in *pb.SearchRequest) (*pb.SearchResponse, error) {
@@ -34,7 +33,7 @@ func (s *SecretsServer) Search(ctx context.Context, in *pb.SearchRequest) (*pb.S
 
 	var secrets []*pb.Secret
 	for _, v := range userSecrets {
-		secret, err := s.buildSecret(&v)
+		secret, err := s.hydrator.ToProto(&v)
 		if err != nil {
 			s.log.Error(err)
 			return nil, status.Error(codes.Internal, err.Error())
@@ -55,7 +54,7 @@ func (s *SecretsServer) Get(ctx context.Context, in *pb.GetRequest) (*pb.GetResp
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	secret, err := s.buildSecret(&sDTO)
+	secret, err := s.hydrator.ToProto(&sDTO)
 	if err != nil {
 		s.log.Error(err)
 		return nil, status.Error(codes.Internal, err.Error())
@@ -67,21 +66,12 @@ func (s *SecretsServer) Get(ctx context.Context, in *pb.GetRequest) (*pb.GetResp
 }
 
 func (s *SecretsServer) Create(ctx context.Context, in *pb.CreateRequest) (*pb.CreateResponse, error) {
-	data, err := s.getData(in.Secret)
+	secret, err := s.hydrator.FromProto(in.Secret, ctx.Value("user_id").(string))
 	if err != nil {
 		s.log.Error(err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	savedSecret, err := s.secrets.Save(
-		ctx,
-		&entities.Secret{
-			Name:       in.Secret.Name,
-			Notes:      in.Secret.Notes,
-			SecretType: in.Secret.SecretType,
-			Data:       data,
-			UserID:     ctx.Value("user_id").(string),
-		},
-	)
+	savedSecret, err := s.secrets.Save(ctx, secret)
 	if err != nil {
 		s.log.Error(err)
 		return nil, status.Error(getErrorCode(err), err.Error())
@@ -92,71 +82,15 @@ func (s *SecretsServer) Create(ctx context.Context, in *pb.CreateRequest) (*pb.C
 }
 
 func (s *SecretsServer) Delete(ctx context.Context, in *pb.DeleteRequest) (*pb.DeleteResponse, error) {
-	data, err := s.getData(in.Secret)
+	secret, err := s.hydrator.FromProto(in.Secret, ctx.Value("user_id").(string))
 	if err != nil {
 		s.log.Error(err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	_, err = s.secrets.DeleteUserSecret(
-		ctx,
-		&entities.Secret{
-			ID:         in.Secret.Id,
-			Name:       in.Secret.Name,
-			Notes:      in.Secret.Notes,
-			SecretType: in.Secret.SecretType,
-			Data:       data,
-			UserID:     ctx.Value("user_id").(string),
-		},
-	)
+	_, err = s.secrets.DeleteUserSecret(ctx, secret)
 	if err != nil {
 		s.log.Error(err)
 		return nil, status.Error(getErrorCode(err), err.Error())
 	}
 	return &pb.DeleteResponse{}, err
-}
-
-func (s *SecretsServer) buildSecret(in *events.SecretDTO) (*pb.Secret, error) {
-	var t entities.Text
-	var p entities.Password
-	secret := pb.Secret{
-		Id:         in.ID,
-		Name:       in.Name,
-		SecretType: in.SecretType,
-		Notes:      in.Notes,
-	}
-	switch in.SecretType {
-	case entities.TypeText:
-		err := json.Unmarshal(in.Data, &t)
-		if err != nil {
-			return nil, err
-		}
-		secret.Data = &pb.Secret_Text{Text: t.Text}
-	case entities.TypePassword:
-		err := json.Unmarshal(in.Data, &p)
-		if err != nil {
-			return nil, err
-		}
-		secret.Data = &pb.Secret_Password{
-			Password: &pb.Password{Login: p.Login, Password: p.Password},
-		}
-	default:
-		return nil, fmt.Errorf("unknown secret type")
-	}
-	return &secret, nil
-}
-
-func (s *SecretsServer) getData(in *pb.Secret) ([]byte, error) {
-	switch d := in.Data.(type) {
-	case *pb.Secret_Text:
-		return json.Marshal(&entities.Text{
-			Text: d.Text,
-		})
-	case *pb.Secret_Password:
-		return json.Marshal(&entities.Password{
-			Login:    d.Password.Login,
-			Password: d.Password.Password,
-		})
-	default:
-		return nil, fmt.Errorf("unknown secret data type")
-	}
 }

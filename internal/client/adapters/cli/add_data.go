@@ -5,6 +5,7 @@ import (
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/pkg/validator"
+	"os"
 )
 
 func (c *Cli) addText() (string, error) {
@@ -83,6 +84,47 @@ func (c *Cli) addPassword() (string, error) {
 				Login:    login,
 				Password: password,
 			},
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	return dataMenu, nil
+}
+
+func (c *Cli) addBinary() (string, error) {
+	name, err := c.prompt.PromptGetInput(
+		prompt.PromptContent{Label: "Введите название: "},
+		validator.ValidateStringLength(3, 25),
+	)
+	if err != nil {
+		return "", err
+	}
+	path, err := c.prompt.PromptGetInput(
+		prompt.PromptContent{Label: "Введите путь к файлу: "},
+		validator.ValidateStringLength(3, 500),
+	)
+	if err != nil {
+		return "", err
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	notes, err := c.prompt.PromptGetInput(
+		prompt.PromptContent{Label: "Введите примечания: "},
+		validator.ValidateStringLength(0, 500),
+	)
+	if err != nil {
+		return "", err
+	}
+	err = c.secrets.CreateSecret(
+		context.Background(),
+		&entities.Secret{
+			Name:       name,
+			Notes:      notes,
+			SecretType: entities.TypeBinary,
+			Data:       content,
 		},
 	)
 	if err != nil {
