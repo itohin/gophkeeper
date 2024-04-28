@@ -8,7 +8,6 @@ import (
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/router"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	errors2 "github.com/itohin/gophkeeper/pkg/errors"
-	"github.com/itohin/gophkeeper/pkg/logger"
 	"reflect"
 	"strings"
 )
@@ -65,7 +64,6 @@ const (
 
 type Cli struct {
 	router     *router.Router
-	log        logger.Logger
 	prompt     prompt.Prompter
 	auth       Auth
 	secrets    Secrets
@@ -74,7 +72,6 @@ type Cli struct {
 }
 
 func NewCli(
-	logger logger.Logger,
 	prompt prompt.Prompter,
 	auth Auth,
 	secrets Secrets,
@@ -82,7 +79,6 @@ func NewCli(
 	errorCh chan error,
 ) *Cli {
 	cli := &Cli{
-		log:        logger,
 		prompt:     prompt,
 		auth:       auth,
 		secrets:    secrets,

@@ -89,13 +89,9 @@ func TestCli_Register(t *testing.T) {
 	defer ctrl.Finish()
 
 	prompter := mocks.NewMockPrompter(ctrl)
-	log := mocks.NewMockLogger(ctrl)
 	auth := mocks.NewMockAuth(ctrl)
 
-	log.EXPECT().Info(gomock.Any()).AnyTimes()
-
 	c := &Cli{
-		log:    log,
 		prompt: prompter,
 		auth:   auth,
 	}
@@ -253,13 +249,9 @@ func TestCli_Login(t *testing.T) {
 	defer ctrl.Finish()
 
 	prompter := mocks.NewMockPrompter(ctrl)
-	log := mocks.NewMockLogger(ctrl)
 	auth := mocks.NewMockAuth(ctrl)
 
-	log.EXPECT().Info(gomock.Any()).AnyTimes()
-
 	c := &Cli{
-		log:    log,
 		prompt: prompter,
 		auth:   auth,
 	}

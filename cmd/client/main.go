@@ -10,19 +10,20 @@ import (
 	"github.com/itohin/gophkeeper/internal/client/adapters/grpc"
 	"github.com/itohin/gophkeeper/internal/client/adapters/storage"
 	"github.com/itohin/gophkeeper/internal/client/adapters/websocket"
+	conf "github.com/itohin/gophkeeper/internal/client/config"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/internal/client/usecases/auth"
 	"github.com/itohin/gophkeeper/internal/client/usecases/secrets"
 	"github.com/itohin/gophkeeper/pkg/jwt"
-	"github.com/itohin/gophkeeper/pkg/logger"
 	"io"
 	"log"
 	"os"
-	"time"
 )
 
 func main() {
-	l := logger.NewLogger()
+	cfg := conf.ReadConfig()
+
+	fmt.Println("cfg: ", cfg.JWT.Signature)
 
 	shutdownCh := make(chan struct{})
 	authCh := make(chan string, 1)
@@ -30,18 +31,18 @@ func main() {
 
 	fingerPrint, err := makeFingerPrint()
 	if err != nil {
-		l.Fatal(err)
+		log.Fatal(err)
 	}
 
-	jwtGen, err := jwt.NewJWTGOManager("secret", 60*time.Second, 360*time.Second)
+	jwtGen, err := jwt.NewJWTGOManager(cfg.JWT.Signature, cfg.JWT.AccessTTL, cfg.JWT.RefreshTTL)
 	if err != nil {
-		l.Fatal(err)
+		log.Fatal(err)
 	}
 	token := entities.NewToken(jwtGen)
 	hydrator := storage.NewSecretsHydrator()
-	client, err := grpc.NewClient(fingerPrint, token, shutdownCh, hydrator)
+	client, err := grpc.NewClient(fingerPrint, token, shutdownCh, hydrator, cfg.GRPC.ServerAddress)
 	if err != nil {
-		l.Fatal(err)
+		log.Fatal(err)
 	}
 	defer client.Close()
 
@@ -49,9 +50,8 @@ func main() {
 	authUseCase := auth.NewAuth(client, authCh)
 	secretsUseCase := secrets.NewSecrets(client, memoryStorage)
 
-	wsPort := "7777"
 	ws := websocket.NewWSListener(
-		fmt.Sprintf("wss://:%s/connect", wsPort),
+		fmt.Sprintf("wss://%s/connect", cfg.WebSocket.ServerAddress),
 		fingerPrint,
 		shutdownCh,
 		errorCh,
@@ -63,7 +63,7 @@ func main() {
 		for {
 			select {
 			case userID := <-authCh:
-				ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*80)
+				ctx, cancel := context.WithTimeout(context.Background(), cfg.WebSocket.ConnectionTimeout)
 				defer cancel()
 				go func() {
 					err := ws.Listen(ctx, userID)
@@ -81,11 +81,11 @@ func main() {
 	}()
 
 	p := prompt.NewPrompt()
-	app := cli.NewCli(l, p, authUseCase, secretsUseCase, shutdownCh, errorCh)
+	app := cli.NewCli(p, authUseCase, secretsUseCase, shutdownCh, errorCh)
 
 	err = app.Start()
 	if err != nil {
-		l.Fatal(err)
+		log.Fatal(err)
 	}
 }
 

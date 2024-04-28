@@ -6,6 +6,7 @@ import (
 	"github.com/itohin/gophkeeper/internal/server/adapters/db/postgres"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc"
 	"github.com/itohin/gophkeeper/internal/server/adapters/websocket"
+	"github.com/itohin/gophkeeper/internal/server/config"
 	"github.com/itohin/gophkeeper/internal/server/usecases/auth"
 	"github.com/itohin/gophkeeper/internal/server/usecases/secrets"
 	"github.com/itohin/gophkeeper/pkg/database"
@@ -25,25 +26,24 @@ import (
 func main() {
 
 	l := logger.NewLogger()
-	db, err := database.NewPgxPoolDB(
-		context.Background(),
-		"postgres://postgres:postgres@localhost:5432/gophkeeper",
-		"internal/server/infrastructure/migrations",
-	)
+
+	cfg := config.ReadConfig()
+
+	db, err := database.NewPgxPoolDB(context.Background(), cfg.DB.DSN, cfg.DB.MigrationsPath)
 	if err != nil {
 		l.Fatal(err)
 	}
 	defer db.Pool.Close()
 
-	jwtManager, err := jwt.NewJWTGOManager("secret", 60*time.Second, 360*time.Second)
+	jwtManager, err := jwt.NewJWTGOManager(cfg.JWT.Signature, cfg.JWT.AccessTTL, cfg.JWT.RefreshTTL)
 	if err != nil {
 		l.Fatal(err)
 	}
 
 	secretEventsCh := make(chan *events.SecretEvent, 10)
-	ws := websocket.NewWSNotifier(":7777", "ca.crt", "ca.key", secretEventsCh)
+	ws := websocket.NewWSNotifier(cfg.WebSocket.Address, cfg.SSL.CertPath, cfg.SSL.KeyPath, secretEventsCh)
 
-	srv, err := setupServer(db, l, jwtManager, secretEventsCh)
+	srv, err := setupServer(db, l, jwtManager, secretEventsCh, cfg)
 	if err != nil {
 		l.Fatal(err)
 	}
@@ -75,26 +75,26 @@ func main() {
 
 }
 
-func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, eventCh chan *events.SecretEvent) (*grpc.Server, error) {
+func setupServer(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, eventCh chan *events.SecretEvent, cfg *config.AppConfig) (*grpc.Server, error) {
 	uuidGen := uuid.NewGoogleUUIDGenerator()
 	secretsRepo := postgres.NewSecretsRepository(db)
 
-	authUseCase, err := setupAuth(db, l, jm, uuidGen)
+	authUseCase, err := setupAuth(db, l, jm, uuidGen, cfg)
 	secretsUseCase := secrets.NewSecretsUseCase(uuidGen, secretsRepo, eventCh)
 	if err != nil {
 		return nil, err
 	}
 
-	return grpc.NewServer(authUseCase, secretsUseCase, l, jm, hydrator.NewSecretsHydrator()), nil
+	return grpc.NewServer(authUseCase, secretsUseCase, l, jm, hydrator.NewSecretsHydrator(), cfg), nil
 }
 
-func setupAuth(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, uuidGen *uuid.GoogleUUIDGenerator) (*auth.AuthUseCase, error) {
+func setupAuth(db *database.PgxPoolDB, l logger.Logger, jm *jwt.JWTGOManager, uuidGen *uuid.GoogleUUIDGenerator, cfg *config.AppConfig) (*auth.AuthUseCase, error) {
 	usersRepo := postgres.NewUsersRepository(db)
 	sessionsRepo := postgres.NewSessionsRepository(db)
 	tx := database.NewPgxTransaction(db.Pool)
 	passwordHash := password.NewBcryptPasswordHasher()
 	otpGen := otp.NewGOTPGenerator(9)
-	smtp := mailer.NewSMTPMailer("from@gmail.com", "", "localhost", "1025", l)
+	smtp := mailer.NewSMTPMailer(cfg.Mail.Login, cfg.Mail.Password, cfg.Mail.Host, cfg.Mail.Port, l)
 
 	return auth.NewAuthUseCase(passwordHash, uuidGen, otpGen, usersRepo, sessionsRepo, smtp, jm, tx), nil
 }

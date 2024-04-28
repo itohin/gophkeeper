@@ -25,6 +25,7 @@ type Client struct {
 	token           *entities.Token
 	fingerPrint     string
 	secretsHydrator SecretHydrator
+	serverAddress   string
 }
 
 func NewClient(
@@ -32,9 +33,10 @@ func NewClient(
 	token *entities.Token,
 	shutdownCh chan struct{},
 	secretsHydrator SecretHydrator,
+	serverAddress string,
 ) (*Client, error) {
 	conn, err := grpc.Dial(
-		":3200",
+		serverAddress,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(
 			ji.UnaryClientInterceptor(token, fingerPrint),
