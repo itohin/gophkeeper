@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc/interceptors/jwt"
+	"github.com/itohin/gophkeeper/internal/server/config"
 	"github.com/itohin/gophkeeper/internal/server/entities"
 	errors2 "github.com/itohin/gophkeeper/pkg/errors"
 	"github.com/itohin/gophkeeper/pkg/events"
@@ -26,6 +27,7 @@ type JWTManager interface {
 type Server struct {
 	srv *grpc.Server
 	log logger.Logger
+	cfg *config.AppConfig
 }
 
 func NewServer(
@@ -34,6 +36,7 @@ func NewServer(
 	log logger.Logger,
 	jwtManager JWTManager,
 	hydrator SecretHydrator,
+	cfg *config.AppConfig,
 ) *Server {
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
@@ -53,11 +56,12 @@ func NewServer(
 	return &Server{
 		srv: srv,
 		log: log,
+		cfg: cfg,
 	}
 }
 
 func (s *Server) Start() error {
-	listen, err := net.Listen("tcp", ":3200")
+	listen, err := net.Listen("tcp", s.cfg.GRPC.Address)
 	if err != nil {
 		s.log.Errorf("server error: %v", err)
 		return err
