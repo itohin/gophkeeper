@@ -136,12 +136,19 @@ func (c *Cli) Start() error {
 }
 
 func (c *Cli) Call(action string) (result string, err error) {
+	if len(action) < 1 {
+		return "", fmt.Errorf("empty action name")
+	}
 	actionData := strings.Split(action, "/")
 	cmd, err := c.router.GetCommand(actionData[0])
-	params := actionData[1:]
 	if err != nil {
 		return "", err
 	}
+	if reflect.TypeOf(cmd).Kind() != reflect.Func {
+		return "", fmt.Errorf("requested action %v not a func", cmd)
+	}
+
+	params := actionData[1:]
 	f := reflect.ValueOf(cmd)
 	if len(params) != f.Type().NumIn() {
 		err = fmt.Errorf("the number of params is out of index")
@@ -153,6 +160,10 @@ func (c *Cli) Call(action string) (result string, err error) {
 	}
 	var res []reflect.Value
 	res = f.Call(in)
+	if len(res) < 2 {
+		err = fmt.Errorf("not enough parameters returned from action %v", cmd)
+		return
+	}
 	if !res[1].IsNil() {
 		return "", res[1].Interface().(error)
 	}

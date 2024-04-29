@@ -30,13 +30,12 @@ func (c *Cli) getData() (string, error) {
 	listPrompt := prompt.PromptContent{}
 	listPrompt.Label = "Выберите запись: "
 	return c.prompt.PromptGetSelect(listPrompt, menu)
-
 }
 
 func (c *Cli) showData(id string) (string, error) {
 	s, err := c.secrets.GetSecret(context.Background(), id)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	switch s.SecretType {
 	case entities.TypePassword:
