@@ -1,10 +1,11 @@
 package config
 
 import (
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"os"
 	"time"
+
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 const (

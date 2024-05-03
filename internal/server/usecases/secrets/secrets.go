@@ -3,10 +3,11 @@ package secrets
 import (
 	"context"
 	"database/sql"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/itohin/gophkeeper/internal/server/entities"
 	"github.com/itohin/gophkeeper/pkg/events"
-	"time"
 )
 
 type SecretsStorage interface {

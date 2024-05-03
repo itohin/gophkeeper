@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"fmt"
+
 	"github.com/manifoldco/promptui"
 )
 

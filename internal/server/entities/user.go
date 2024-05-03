@@ -3,8 +3,9 @@ package entities
 import (
 	"database/sql"
 	"errors"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type User struct {

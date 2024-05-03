@@ -2,9 +2,10 @@ package cli
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/router"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCli_Call(t *testing.T) {

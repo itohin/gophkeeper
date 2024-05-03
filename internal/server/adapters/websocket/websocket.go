@@ -4,10 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/gobwas/ws"
-	"github.com/itohin/gophkeeper/pkg/events"
 	"log"
 	"net/http"
+
+	"github.com/gobwas/ws"
+	"github.com/itohin/gophkeeper/pkg/events"
 )
 
 type WSNotifier struct {

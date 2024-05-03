@@ -3,10 +3,11 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/itohin/gophkeeper/internal/server/entities"
 	"github.com/itohin/gophkeeper/pkg/database"
 	"github.com/itohin/gophkeeper/pkg/events"
-	"time"
 )
 
 type SecretsRepository struct {

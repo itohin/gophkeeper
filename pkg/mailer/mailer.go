@@ -1,8 +1,9 @@
 package mailer
 
 import (
-	"github.com/itohin/gophkeeper/pkg/logger"
 	"net/smtp"
+
+	"github.com/itohin/gophkeeper/pkg/logger"
 )
 
 type SMTPMailer struct {

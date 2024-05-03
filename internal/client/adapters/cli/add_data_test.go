@@ -3,13 +3,14 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/mocks"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 func TestCli_addText(t *testing.T) {

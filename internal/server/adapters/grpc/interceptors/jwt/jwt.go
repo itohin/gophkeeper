@@ -3,12 +3,13 @@ package jwt
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"strings"
-	"time"
 )
 
 func UnaryServerInterceptor(f func(tokenString string) (map[string]interface{}, error)) grpc.UnaryServerInterceptor {

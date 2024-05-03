@@ -1,10 +1,11 @@
 package config
 
 import (
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"os"
 	"time"
+
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -154,8 +155,8 @@ func setDefaults() {
 	viper.SetDefault(JWTAccessTTL, 60*time.Second)
 	viper.SetDefault(JWTRefreshTTL, 360*time.Second)
 	viper.SetDefault(WebSocketAddress, ":7777")
-	viper.SetDefault(SSLCertPath, "ca.crt")
-	viper.SetDefault(SSLKeyPath, "ca.key")
+	viper.SetDefault(SSLCertPath, "test_certs/ca.crt")
+	viper.SetDefault(SSLKeyPath, "test_certs/ca.key")
 	viper.SetDefault(MailLogin, "from@gmail.com")
 	viper.SetDefault(MailPassword, "")
 	viper.SetDefault(MailHost, "localhost")

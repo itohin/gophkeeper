@@ -3,9 +3,10 @@ package postgres
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/itohin/gophkeeper/internal/server/entities"
 	"github.com/itohin/gophkeeper/pkg/database"
-	"time"
 )
 
 type UsersRepository struct {

@@ -3,6 +3,7 @@ package hydrator
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/itohin/gophkeeper/internal/server/entities"
 	"github.com/itohin/gophkeeper/pkg/events"
 	pb "github.com/itohin/gophkeeper/proto"

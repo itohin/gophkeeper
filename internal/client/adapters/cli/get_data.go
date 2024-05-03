@@ -3,10 +3,11 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/pkg/validator"
-	"os"
 )
 
 func (c *Cli) getData() (string, error) {

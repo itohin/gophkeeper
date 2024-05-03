@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/router"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	errors2 "github.com/itohin/gophkeeper/pkg/errors"
-	"reflect"
-	"strings"
 )
 
 type Auth interface {

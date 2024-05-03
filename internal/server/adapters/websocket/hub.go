@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
-	"github.com/itohin/gophkeeper/pkg/events"
 	"io"
 	"log"
 	"sync"
+
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
+	"github.com/itohin/gophkeeper/pkg/events"
 )
 
 type devicesMap map[string]*Client

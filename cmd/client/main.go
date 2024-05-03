@@ -5,6 +5,10 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"log"
+	"os"
+
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/adapters/grpc"
@@ -15,9 +19,6 @@ import (
 	"github.com/itohin/gophkeeper/internal/client/usecases/auth"
 	"github.com/itohin/gophkeeper/internal/client/usecases/secrets"
 	"github.com/itohin/gophkeeper/pkg/jwt"
-	"io"
-	"log"
-	"os"
 )
 
 func main() {

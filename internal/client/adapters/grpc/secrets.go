@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	pb "github.com/itohin/gophkeeper/proto"
 )

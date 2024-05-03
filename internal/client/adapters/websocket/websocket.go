@@ -5,13 +5,14 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"sync"
+
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/pkg/events"
-	"io"
-	"log"
-	"sync"
 )
 
 type SecretsHolder interface {

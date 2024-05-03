@@ -3,6 +3,8 @@ package grpc
 import (
 	"context"
 	"errors"
+	"net"
+
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc/interceptors/jwt"
 	"github.com/itohin/gophkeeper/internal/server/config"
 	"github.com/itohin/gophkeeper/internal/server/entities"
@@ -12,7 +14,6 @@ import (
 	pb "github.com/itohin/gophkeeper/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"net"
 )
 
 type SecretHydrator interface {

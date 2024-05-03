@@ -2,6 +2,11 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/itohin/gophkeeper/internal/server/adapters/db/hydrator"
 	"github.com/itohin/gophkeeper/internal/server/adapters/db/postgres"
 	"github.com/itohin/gophkeeper/internal/server/adapters/grpc"
@@ -17,10 +22,6 @@ import (
 	"github.com/itohin/gophkeeper/pkg/mailer"
 	"github.com/itohin/gophkeeper/pkg/otp"
 	"github.com/itohin/gophkeeper/pkg/uuid"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func main() {

@@ -3,11 +3,12 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/mocks"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCli_Auth(t *testing.T) {

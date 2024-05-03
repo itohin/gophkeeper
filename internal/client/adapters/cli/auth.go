@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/pkg/validator"
 )

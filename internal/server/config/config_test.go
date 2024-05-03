@@ -39,8 +39,8 @@ func TestReadConfig(t *testing.T) {
 					Address: ":7777",
 				},
 				&SSL{
-					CertPath: "ca.crt",
-					KeyPath:  "ca.key",
+					CertPath: "test_certs/ca.crt",
+					KeyPath:  "test_certs/ca.key",
 				},
 				&Mail{
 					Login:    "from@gmail.com",

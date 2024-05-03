@@ -2,9 +2,10 @@ package entities
 
 import (
 	"context"
+	"time"
+
 	"github.com/itohin/gophkeeper/proto"
 	pb "github.com/itohin/gophkeeper/proto"
-	"time"
 )
 
 type JWTManager interface {

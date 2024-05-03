@@ -2,10 +2,11 @@ package cli
 
 import (
 	"context"
+	"os"
+
 	"github.com/itohin/gophkeeper/internal/client/adapters/cli/prompt"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/pkg/validator"
-	"os"
 )
 
 func (c *Cli) addText() (string, error) {

@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"context"
+
 	"github.com/itohin/gophkeeper/internal/client/entities"
 )
 

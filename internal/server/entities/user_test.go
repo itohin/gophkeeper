@@ -2,9 +2,10 @@ package entities
 
 import (
 	"database/sql"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUser_Verify_Success(t *testing.T) {

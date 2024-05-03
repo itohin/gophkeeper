@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"fmt"
+
 	ji "github.com/itohin/gophkeeper/internal/client/adapters/grpc/interceptors/jwt"
 	"github.com/itohin/gophkeeper/internal/client/entities"
 	"github.com/itohin/gophkeeper/pkg/errors"

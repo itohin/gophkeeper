@@ -3,11 +3,12 @@ package database
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"os"
-	"path/filepath"
 )
 
 type PgxPoolDB struct {

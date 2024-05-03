@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/golang/mock/gomock"
 	"github.com/itohin/gophkeeper/internal/server/entities"
 	"github.com/itohin/gophkeeper/mocks"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestAuthUseCase_Register(t *testing.T) {

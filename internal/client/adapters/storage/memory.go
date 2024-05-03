@@ -3,8 +3,9 @@ package storage
 import (
 	"context"
 	"fmt"
-	"github.com/itohin/gophkeeper/internal/client/entities"
 	"sync"
+
+	"github.com/itohin/gophkeeper/internal/client/entities"
 )
 
 type MemoryStorage struct {

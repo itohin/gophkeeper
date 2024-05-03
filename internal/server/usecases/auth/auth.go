@@ -3,9 +3,10 @@ package auth
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/itohin/gophkeeper/internal/server/entities"
 	"github.com/itohin/gophkeeper/pkg/errors"
-	"time"
 )
 
 type Mailer interface {
