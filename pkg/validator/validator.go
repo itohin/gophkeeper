@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"time"
 	"unicode"
 )
 
@@ -44,6 +45,25 @@ func ValidateStringLength(minLength, maxLength int) func(string) error {
 		if length > maxLength {
 			return fmt.Errorf("максимальная допустимая длина строки %v/n символов", maxLength)
 		}
+		return nil
+	}
+}
+
+func ValidateCardExpiration() func(string) error {
+	return func(input string) error {
+		inputLen := len(input)
+		if inputLen != 5 && inputLen != 7 {
+			return fmt.Errorf("некорректный формат даты истечения: %s", input)
+		}
+		layout := "01/06"
+		if inputLen == 7 {
+			layout = "01/2006"
+		}
+		_, err := time.Parse(layout, input)
+		if err != nil {
+			return fmt.Errorf("некорректная дата истечения: %v", err)
+		}
+
 		return nil
 	}
 }

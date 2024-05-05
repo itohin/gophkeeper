@@ -34,6 +34,10 @@ func (c *Cli) addData() (string, error) {
 				Action: addPassword,
 			},
 			{
+				Label:  addCardLabel,
+				Action: addCard,
+			},
+			{
 				Label:  addBinaryLabel,
 				Action: addBinary,
 			},

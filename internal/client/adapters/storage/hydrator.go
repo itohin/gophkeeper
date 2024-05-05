@@ -31,6 +31,16 @@ func (h *SecretsHydrator) ToProto(s *entities.Secret) (*pb.Secret, error) {
 				Password: d.Password,
 			},
 		}
+	case *entities.Card:
+		ps.Data = &pb.Secret_Card{
+			Card: &pb.Card{
+				Number:     d.Number,
+				Expiration: d.Expiration,
+				Code:       d.Code,
+				Pin:        d.Pin,
+				OwnerName:  d.OwnerName,
+			},
+		}
 	case string:
 		ps.Data = &pb.Secret_Text{
 			Text: d,
@@ -59,6 +69,14 @@ func (h *SecretsHydrator) FromProto(v *pb.Secret) (*entities.Secret, error) {
 			Login:    d.Password.Login,
 			Password: d.Password.Password,
 		}
+	case *pb.Secret_Card:
+		secret.Data = &entities.Card{
+			Number:     d.Card.Number,
+			Expiration: d.Card.Expiration,
+			Code:       d.Card.Code,
+			Pin:        d.Card.Pin,
+			OwnerName:  d.Card.OwnerName,
+		}
 	case *pb.Secret_Text:
 		secret.Data = d.Text
 	case *pb.Secret_Binary:
@@ -79,6 +97,7 @@ func (h *SecretsHydrator) FromSecretEvent(event *events.SecretEvent) (*entities.
 	var t entities.Text
 	var p entities.Password
 	var b entities.Binary
+	var c entities.Card
 
 	switch s.SecretType {
 	case entities.TypeText:
@@ -95,6 +114,18 @@ func (h *SecretsHydrator) FromSecretEvent(event *events.SecretEvent) (*entities.
 		s.Data = &entities.Password{
 			Login:    p.Login,
 			Password: p.Password,
+		}
+	case entities.TypeCard:
+		err := json.Unmarshal(event.Secret.Data, &c)
+		if err != nil {
+			return nil, fmt.Errorf("failed to transform secret event: %v", err)
+		}
+		s.Data = &entities.Card{
+			Number:     c.Number,
+			Expiration: c.Expiration,
+			Code:       c.Code,
+			Pin:        c.Pin,
+			OwnerName:  c.OwnerName,
 		}
 	case entities.TypeBinary:
 		err := json.Unmarshal(event.Secret.Data, &b)

@@ -45,9 +45,34 @@ func (c *Cli) showData(id string) (string, error) {
 		return c.showText(s)
 	case entities.TypeBinary:
 		return c.showBinary(s)
+	case entities.TypeCard:
+		return c.showCard(s)
 	default:
 		return "", fmt.Errorf("unknown secret type %v", s.SecretType)
 	}
+}
+
+func (c *Cli) showCard(secret *entities.Secret) (string, error) {
+	data := secret.Data.(*entities.Card)
+	fmt.Println("Название: ", secret.Name)
+	fmt.Println("Номер: ", data.Number)
+	fmt.Println("Срок действия: ", data.Expiration)
+	fmt.Println("CVC/CVV код: ", data.Code)
+	fmt.Println("PIN код: ", data.Pin)
+	fmt.Println("Имя владельца: ", data.OwnerName)
+	fmt.Println("Примечания: ", secret.Notes)
+	return c.prompt.PromptGetSelect(
+		prompt.PromptContent{Label: "Выберите действие: "},
+		[]prompt.SelectItem{
+			{
+				Label:  deleteDataLabel,
+				Action: deleteData + "/" + secret.ID,
+			},
+			{
+				Label:  comeBackLabel,
+				Action: getData,
+			},
+		})
 }
 
 func (c *Cli) showPassword(secret *entities.Secret) (string, error) {

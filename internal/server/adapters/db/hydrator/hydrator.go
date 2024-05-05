@@ -36,6 +36,7 @@ func (h *SecretsHydrator) ToProto(in *events.SecretDTO) (*pb.Secret, error) {
 	var t entities.Text
 	var p entities.Password
 	var b entities.Binary
+	var c entities.Card
 	secret := pb.Secret{
 		Id:         in.ID,
 		Name:       in.Name,
@@ -56,6 +57,20 @@ func (h *SecretsHydrator) ToProto(in *events.SecretDTO) (*pb.Secret, error) {
 		}
 		secret.Data = &pb.Secret_Password{
 			Password: &pb.Password{Login: p.Login, Password: p.Password},
+		}
+	case entities.TypeCard:
+		err := json.Unmarshal(in.Data, &c)
+		if err != nil {
+			return nil, err
+		}
+		secret.Data = &pb.Secret_Card{
+			Card: &pb.Card{
+				Number:     c.Number,
+				Expiration: c.Expiration,
+				Code:       c.Code,
+				Pin:        c.Pin,
+				OwnerName:  c.OwnerName,
+			},
 		}
 	case entities.TypeBinary:
 		err := json.Unmarshal(in.Data, &b)
@@ -79,6 +94,14 @@ func getProtoSecretData(in *pb.Secret) ([]byte, error) {
 		return json.Marshal(&entities.Password{
 			Login:    d.Password.Login,
 			Password: d.Password.Password,
+		})
+	case *pb.Secret_Card:
+		return json.Marshal(&entities.Card{
+			Number:     d.Card.Number,
+			Expiration: d.Card.Expiration,
+			Code:       d.Card.Code,
+			Pin:        d.Card.Pin,
+			OwnerName:  d.Card.OwnerName,
 		})
 	case *pb.Secret_Binary:
 		return json.Marshal(&entities.Binary{

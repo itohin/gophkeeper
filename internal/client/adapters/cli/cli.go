@@ -49,6 +49,7 @@ const (
 	addText          = "addText"
 	addPassword      = "addPassword"
 	addBinary        = "addBinary"
+	addCard          = "addCard"
 	saveBinaryToDisk = "saveBinaryToDisk"
 	showData         = "showData"
 
@@ -57,6 +58,7 @@ const (
 	deleteDataLabel       = "Удалить данные"
 	addTextLabel          = "Текстовые данные"
 	addBinaryLabel        = "Бинарные данные"
+	addCardLabel          = "Данные банковской карты"
 	saveBinaryToDiskLabel = "Сохранить на диске"
 	addPasswordLabel      = "Данные для входа(логин/пароль)"
 
@@ -98,6 +100,7 @@ func NewCli(
 			getData:     cli.getData,
 			addData:     cli.addData,
 			addText:     cli.addText,
+			addCard:     cli.addCard,
 			addPassword: cli.addPassword,
 			addBinary:   cli.addBinary,
 			showData:    cli.showData,

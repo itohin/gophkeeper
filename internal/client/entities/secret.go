@@ -33,6 +33,14 @@ type Binary struct {
 	Binary []byte
 }
 
+type Card struct {
+	Number     string
+	Expiration string
+	Code       string
+	Pin        string
+	OwnerName  string
+}
+
 func (s *Secret) GetLabel() string {
 	switch s.SecretType {
 	case TypeText:

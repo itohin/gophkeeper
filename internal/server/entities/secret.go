@@ -33,3 +33,11 @@ type Password struct {
 	Login    string
 	Password string
 }
+
+type Card struct {
+	Number     string
+	Expiration string
+	Code       string
+	Pin        string
+	OwnerName  string
+}

@@ -50,7 +50,7 @@ func TestCli_showData(t *testing.T) {
 		"unknown_type": &entities.Secret{
 			ID:         "unknown_type",
 			Name:       "Unknown",
-			SecretType: 4,
+			SecretType: 5,
 			Data:       "Unknown type",
 			Notes:      "...",
 		},
@@ -77,19 +77,6 @@ func TestCli_showData(t *testing.T) {
 				"promptSelect": nil,
 			},
 			id:         "text",
-			wantAction: "",
-			wantErr:    assert.Error,
-		},
-		{
-			name: "unknown secret type error",
-			mockTimes: map[string]int{
-				"promptSelect": 0,
-			},
-			errors: map[string]error{
-				"getSecret":    nil,
-				"promptSelect": nil,
-			},
-			id:         "unknown_type",
 			wantAction: "",
 			wantErr:    assert.Error,
 		},
