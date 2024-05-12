@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package gophkeeper;
+
+option go_package = "gophkeeper/proto";
+
+message Token {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+}
+message RegisterResponse {}
+
+message VerifyRequest {
+  string email = 1;
+  string otp = 2;
+  string fingerprint = 3;
+}
+message VerifyResponse {
+  Token token = 1;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string fingerprint = 3;
+}
+message LoginResponse {
+  Token token = 1;
+}
+
+message RefreshRequest {
+  string session_id = 1;
+  string fingerprint = 2;
+}
+message RefreshResponse {
+  Token token = 1;
+}
+
+message LogoutRequest {
+  string session_id = 1;
+}
+message LogoutResponse {}
+
+service Auth {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Verify(VerifyRequest) returns (VerifyResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}

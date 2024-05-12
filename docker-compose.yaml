@@ -1,0 +1,26 @@
+version: '3.7'
+services:
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025" # smtp server
+      - "8025:8025" # web ui
+  postgres:
+    image: postgres:14
+    ports:
+      - 5432:5432
+    container_name: 'postgres_gophkeeper'
+    working_dir: /
+    restart: always
+    environment:
+      POSTGRES_DB: 'postgres'
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'postgres'
+    volumes:
+      - dump:/dump
+      - postgresql:/var/lib/postgresql/data
+
+volumes:
+  dump:
+  postgresql:
