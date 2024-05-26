@@ -9,5 +9,5 @@ func NewGoogleUUIDGenerator() *GoogleUUIDGenerator {
 }
 
 func (g *GoogleUUIDGenerator) Generate() ([16]byte, error) {
-	return uuid.New(), nil
+	return uuid.NewV7()
 }
