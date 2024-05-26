@@ -51,16 +51,12 @@ func (h *Hub) handleBroadcast() {
 	for {
 		select {
 		case s := <-h.secretEventsCh:
-			log.Printf("message received: %v", s)
-			message, err := json.Marshal(s)
-			if err != nil {
-				log.Printf("failed to marshal data: %v", err)
-			}
+			err := h.broadcast(s)
 
-			err = h.broadcast(message)
 			if err != nil {
 				log.Printf("failed to broadcast message: %v", err)
 			}
+
 		default:
 
 		}
@@ -96,15 +92,24 @@ func (h *Hub) handleCloseClient(c *Client) {
 	}
 }
 
-func (h *Hub) broadcast(message []byte) error {
+func (h *Hub) broadcast(s *events.SecretEvent) error {
 	h.mx.Lock()
 	defer h.mx.Unlock()
 
-	for _, devices := range h.clients {
-		for _, c := range devices {
-			if err := wsutil.WriteServerText(c.conn, message); err != nil {
-				return fmt.Errorf("failed to send a message to the client id %s deviceId %s: %v", c.id, c.deviceID, err)
-			}
+	userID := s.Secret.UserID
+	message, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
+
+	devices, ok := h.clients[userID]
+	if !ok {
+		return fmt.Errorf("clients of userID %s not found", userID)
+	}
+
+	for _, c := range devices {
+		if err := wsutil.WriteServerText(c.conn, message); err != nil {
+			return fmt.Errorf("failed to send a message to the client id %s deviceId %s: %v", c.id, c.deviceID, err)
 		}
 	}
 	return nil
